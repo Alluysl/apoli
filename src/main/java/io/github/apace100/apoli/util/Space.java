@@ -8,10 +8,15 @@ public enum Space {
     WORLD, LOCAL, LOCAL_HORIZONTAL, VELOCITY, VELOCITY_NORMALIZED, VELOCITY_HORIZONTAL, VELOCITY_HORIZONTAL_NORMALIZED;
 
     public static void rotateVectorToBase(Vec3d newBase, Vec3f vector) {
-        Vec3d globalForward = new Vec3d(0, 0, 1);
-        Vec3d v = globalForward.crossProduct(newBase).normalize();
-        double c = Math.acos(globalForward.dotProduct(newBase));
-        Quaternion quat = new Quaternion(new Vec3f((float)v.x, (float)v.y, (float)v.z), (float)c, false);
-        vector.rotate(quat);
+
+        Vec3d normalizedNewBase = newBase.normalize(); // already normalized but for the sake of consistency, normalizing it either way
+        SimpleMatrix3f baseChangeMatrix = SimpleMatrix3f.fromOrientationVector(normalizedNewBase);
+        vector.set(baseChangeMatrix.multiply(vector));
+
+//        Vec3d globalForward = new Vec3d(0, 0, 1);
+//        Vec3d v = globalForward.crossProduct(newBase).normalize();
+//        double c = Math.acos(globalForward.dotProduct(newBase));
+//        Quaternion quat = new Quaternion(new Vec3f((float)v.x, (float)v.y, (float)v.z), (float)c, false);
+//        vector.rotate(quat);
     }
 }
