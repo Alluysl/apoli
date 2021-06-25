@@ -8,7 +8,7 @@ public enum Space {
     WORLD, LOCAL, LOCAL_HORIZONTAL, VELOCITY, VELOCITY_NORMALIZED, VELOCITY_HORIZONTAL, VELOCITY_HORIZONTAL_NORMALIZED;
 
     public static void rotateVectorToBase(Vec3d newBase, Vec3f vector) {
-
+        vector.normalize(); // in theory already normalized but just to be safe
         vector.set(SimpleMatrix3f.fromOrientationVector(newBase).multiply(vector));
     }
 }

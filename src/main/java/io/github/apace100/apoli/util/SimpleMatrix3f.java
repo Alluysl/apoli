@@ -36,10 +36,7 @@ public class SimpleMatrix3f {
         return new SimpleMatrix3f(factors);
     }
     public static SimpleMatrix3f fromOrientationVector(Vec3d vec){
-        Vec3d nVec = vec.normalize();
-        SimpleMatrix3f res = fromOrientationVector(new Vec3f((float)nVec.getX(), (float)nVec.getY(), (float)nVec.getZ()));
-        res.scaleSelf((float)vec.length());
-        return res;
+        return fromOrientationVector(new Vec3f((float)vec.getX(), (float)vec.getY(), (float)vec.getZ()));
     }
 
 //    public SimpleMatrix3f(Vec3f diagonalVector){
