@@ -8,7 +8,7 @@ public class SimpleMatrix3f {
 
     private float[][] factors = new float[3][3]; // [column][line]
 
-    // Builds a basis matrix from its Z vector. The X vector shall be normal to the world's Y axis. All three vectors are normalized.
+    // Builds a basis matrix from its (normalized) Z vector. The X vector shall be normal to the world's Y axis. All three vectors are normalized.
     public static SimpleMatrix3f fromOrientationVector(Vec3f vec){
         float[][] factors = new float[3][3];
         // Z
@@ -36,7 +36,10 @@ public class SimpleMatrix3f {
         return new SimpleMatrix3f(factors);
     }
     public static SimpleMatrix3f fromOrientationVector(Vec3d vec){
-        return fromOrientationVector(new Vec3f((float)vec.getX(), (float)vec.getY(), (float)vec.getZ()));
+        Vec3d nVec = vec.normalize();
+        SimpleMatrix3f res = fromOrientationVector(new Vec3f((float)nVec.getX(), (float)nVec.getY(), (float)nVec.getZ()));
+        res.scaleSelf((float)vec.length());
+        return res;
     }
 
 //    public SimpleMatrix3f(Vec3f diagonalVector){
@@ -80,12 +83,12 @@ public class SimpleMatrix3f {
 //            transposedFactors[i / 3][i % 3] = factors[i % 3][i / 3];
 //        factors = transposedFactors;
 //    }
-//
-//    public void scaleSelf(float scalar){
-//        for (int i = 0; i < 9; ++i)
-//            factors[i / 3][i % 3] *= scalar;
-//    }
-//
+
+    public void scaleSelf(float scalar){
+        for (int i = 0; i < 9; ++i)
+            factors[i / 3][i % 3] *= scalar;
+    }
+
 //    // I have a feeling there's a better implementation out there, I'm pretty sure creating all these arrays is a bad idea (and the time complexity is meh)
 //    private float[][] cofactors(){
 //        float[][] cofactors = new float[3][3];
