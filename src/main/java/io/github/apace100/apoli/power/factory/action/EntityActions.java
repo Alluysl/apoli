@@ -190,10 +190,9 @@ public class EntityActions {
                 TriConsumer<Float, Float, Float> method = entity::addVelocity;
                 if(data.getBoolean("set"))
                     method = entity::setVelocity;
-                if (space.toGlobal(vec, entity)){
-                    method.accept(vec.getX(), vec.getY(), vec.getZ());
-                    entity.velocityModified = true;
-                }
+                space.toGlobal(vec, entity);
+                method.accept(vec.getX(), vec.getY(), vec.getZ());
+                entity.velocityModified = true;
             }));
         register(new ActionFactory<>(Apoli.identifier("spawn_entity"), new SerializableData()
             .add("entity_type", SerializableDataTypes.ENTITY_TYPE)
