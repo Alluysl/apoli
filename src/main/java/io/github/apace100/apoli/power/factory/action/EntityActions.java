@@ -40,6 +40,7 @@ import net.minecraft.world.World;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.util.TriConsumer;
 
+import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -180,56 +181,19 @@ public class EntityActions {
             .add("space", ApoliDataTypes.SPACE, Space.WORLD)
             .add("set", SerializableDataTypes.BOOLEAN, false),
             (data, entity) -> {
+                if (!entity.world.isClient)
+                    return; // velocity calculations are client-side, don't do anything on the server
                 Space space = (Space)data.get("space");
                 Vec3f vec = new Vec3f(data.getFloat("x"), data.getFloat("y"), data.getFloat("z"));
                 Vec3d vel;
                 Vec3d velH;
                 TriConsumer<Float, Float, Float> method = entity::addVelocity;
-                if(data.getBoolean("set")) {
+                if(data.getBoolean("set"))
                     method = entity::setVelocity;
+                if (space.toGlobal(vec, entity)){
+                    method.accept(vec.getX(), vec.getY(), vec.getZ());
+                    entity.velocityModified = true;
                 }
-                switch(space) {
-                    case WORLD:
-                        method.accept(data.getFloat("x"), data.getFloat("y"), data.getFloat("z"));
-                        break;
-                    case LOCAL:
-                        Space.rotateVectorToBase(entity.getRotationVector(), vec);
-                        method.accept(vec.getX(), vec.getY(), vec.getZ());
-                        break;
-                    case LOCAL_HORIZONTAL:
-                        vel = entity.getRotationVector();
-                        velH = new Vec3d(vel.x, 0, vel.z);
-                        if(velH.lengthSquared() > 0.00005) {
-                            velH = velH.normalize();
-                            Space.rotateVectorToBase(velH, vec);
-                            method.accept(vec.getX(), vec.getY(), vec.getZ());
-                        }
-                        break;
-                    case VELOCITY:
-                        Space.rotateVectorToBase(entity.getVelocity(), vec);
-                        method.accept(vec.getX(), vec.getY(), vec.getZ());
-                        break;
-                    case VELOCITY_NORMALIZED:
-                        Space.rotateVectorToBase(entity.getVelocity().normalize(), vec);
-                        method.accept(vec.getX(), vec.getY(), vec.getZ());
-                        break;
-                    case VELOCITY_HORIZONTAL:
-                        vel = entity.getVelocity();
-                        velH = new Vec3d(vel.x, 0, vel.z);
-                        Space.rotateVectorToBase(velH, vec);
-                        method.accept(vec.getX(), vec.getY(), vec.getZ());
-                        break;
-                    case VELOCITY_HORIZONTAL_NORMALIZED:
-                        vel = entity.getVelocity();
-                        velH = new Vec3d(vel.x, 0, vel.z);
-                        if(velH.lengthSquared() > 0.00005) {
-                            velH = velH.normalize();
-                            Space.rotateVectorToBase(velH, vec);
-                            method.accept(vec.getX(), vec.getY(), vec.getZ());
-                        }
-                        break;
-                }
-                entity.velocityModified = true;
             }));
         register(new ActionFactory<>(Apoli.identifier("spawn_entity"), new SerializableData()
             .add("entity_type", SerializableDataTypes.ENTITY_TYPE)

@@ -9,7 +9,7 @@ public class SimpleMatrix3f {
     private float[][] factors = new float[3][3]; // [column][line]
 
     // Builds a basis matrix from its (normalized) Z vector. The X vector shall be normal to the world's Y axis. All three vectors are normalized.
-    public static SimpleMatrix3f fromOrientationVector(Vec3f vec){
+    public static SimpleMatrix3f fromNormalizedOrientationVector(Vec3f vec){
         float[][] factors = new float[3][3];
         // Z
         factors[1][2] = vec.getY();
@@ -36,7 +36,10 @@ public class SimpleMatrix3f {
         return new SimpleMatrix3f(factors);
     }
     public static SimpleMatrix3f fromOrientationVector(Vec3d vec){
-        return fromOrientationVector(new Vec3f((float)vec.getX(), (float)vec.getY(), (float)vec.getZ()));
+        Vec3d nVec = vec.normalize();
+        SimpleMatrix3f res = fromNormalizedOrientationVector(new Vec3f((float)nVec.getX(), (float)nVec.getY(), (float)nVec.getZ()));
+        res.scaleSelf((float)vec.length());
+        return res;
     }
 
 //    public SimpleMatrix3f(Vec3f diagonalVector){
