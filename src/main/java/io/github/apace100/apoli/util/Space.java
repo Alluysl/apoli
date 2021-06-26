@@ -1,37 +1,52 @@
 package io.github.apace100.apoli.util;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Matrix3f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3f;
 
 public enum Space {
-    WORLD, LOCAL, LOCAL_HORIZONTAL, LOCAL_HORIZONTAL_NORMALIZED, VELOCITY, VELOCITY_NORMALIZED, VELOCITY_HORIZONTAL, VELOCITY_HORIZONTAL_NORMALIZED;
+    WORLD,
+    LOCAL, LOCAL_HORIZONTAL, LOCAL_HORIZONTAL_NORMALIZED,
+    VELOCITY, VELOCITY_NORMALIZED, VELOCITY_HORIZONTAL, VELOCITY_HORIZONTAL_NORMALIZED;
 
-    private static Matrix3f getBaseTransformMatrixFromNormalizedDirectionVector(Vec3d vector){
-        double[][] factors = new double[3][3];
+    /**
+     * @author Alluysl
+     * Provides the matrix transform from the base specified by the input vector to the cardinal base.
+     * The input vector is the Z (forward) axis of the base, while the calculated X axis is orthogonal to the "left" of Z. Y is such as Z is the cross product of X and Y.
+     * If the input vector were to be vertical, the yaw is used to infer the X and Y vectors of the base.
+     * @param vector the input vector the base is inferred from (forward vector of local space)
+     * @param yaw the yaw of local space
+     * @return the transformation matrix from local to global space
+     * */
+    private static Matrix3f getBaseTransformMatrixFromNormalizedDirectionVector(Vec3d vector, float yaw){
+        double[][] factors = new double[3][3]; // [line][column] if vectors are considered vertical for matrix multiplication
+        factors[1][0] = 0; // X vector is horizontal
         // Z
         factors[1][2] = vector.getY();
-        if (Math.abs(factors[1][2]) != 1.0F) {
-            // If the orientation vector points straight up or straight down, avoid a catastrophe (division by 0, can't know yaw, impossible to determine stuff by nullifying X and Y
-            // The default value of floats is 0.0F so we can just return already if the vector points straight up or down
-            // Otherwise continue on:
+        if (Math.abs(factors[1][2]) != 1.0F) { // Z not vertical, can infer X from it
             factors[0][2] = vector.getX();
             factors[2][2] = vector.getZ();
-            // X
+            // X (orthogonal to the projection of Z on the global XZ plane)
             factors[0][0] = vector.getZ();
-            factors[1][0] = 0; // X vector is horizontal
             factors[2][0] = -vector.getX();
             // Normalize X
             float xFactor = (float)(1 / Math.sqrt(factors[0][0] * factors[0][0] + factors[2][0] * factors[2][0]));
             factors[0][0] *= xFactor;
             factors[2][0] *= xFactor;
-            // Y (cross product of Z and X)
-            factors[0][1] = factors[1][2] * factors[2][0];
-            factors[1][1] = factors[2][2] * factors[0][0] - factors[0][2] * factors[2][0];
-            factors[2][1] = -factors[1][2] * factors[0][0];
-        } else
-            System.err.println("[Warning] Vertical orientation vector, couldn't assess X and Y local vectors, set to null vector.");
+        } else {
+            // If the orientation vector points straight up or straight down, use the yaw to determine the X vector (it's "on the left")
+            // The pitch doesn't affect the X vector as it's a rotation around that same vector
+            float trigonometricYaw = -yaw * 0.0174532925F; // pi / 180 = 0.0174532925
+            factors[0][0] = MathHelper.cos(trigonometricYaw);
+            factors[2][0] = -MathHelper.sin(trigonometricYaw);
+        }
+        // Y (cross product of Z and X, simplified by the fact that X has a Y component of 0)
+        factors[0][1] = factors[1][2] * factors[2][0];
+        factors[1][1] = factors[2][2] * factors[0][0] - factors[0][2] * factors[2][0];
+        factors[2][1] = -factors[1][2] * factors[0][0];
+
         Matrix3f res = new Matrix3f();
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 3; ++j)
@@ -39,25 +54,41 @@ public enum Space {
         return res;
     }
 
-    private static void rotateVectorToBase(Vec3d base, Vec3f vector, boolean normalizeBase) {
+    /**
+     * @author Alluysl
+     * Transforms a vector from local space to global space. The base inferred from its forward vector is orthogonal.
+     * @param baseForwardVector the base's forward (Z) vector
+     * @param vector the vector to transform
+     * @param baseYaw the yaw of the base (used in case the forward vector lacks information to infer the base)
+     * @param normalizeBase whether to normalize the base, if so all three vectors of the base will be normalized, otherwise they'll all have the length of the input forward vector
+     * */
+    private static void transformVectorToBase(Vec3d baseForwardVector, Vec3f vector, float baseYaw, boolean normalizeBase) {
 
-        double baseScaleD = base.length();
+        double baseScaleD = baseForwardVector.length();
         if (baseScaleD <= 0.007){ // tweak value if too high, may be a bit too aggressive
             vector.set(Vec3f.ZERO);
         } else {
             float baseScale = (float)baseScaleD;
 
-            Vec3d normalizedBase = base.normalize(); // the function called below assumes the base is normalized to simplify calculations (Y calculated as cross product of Z and X guaranteed to be normalized if X and Z are normalized)
+            Vec3d normalizedBase = baseForwardVector.normalize(); // the function called below assumes the base is normalized to simplify calculations (Y calculated as cross product of Z and X guaranteed to be normalized if X and Z are normalized)
 
-            Matrix3f transformMatrix = getBaseTransformMatrixFromNormalizedDirectionVector(normalizedBase);
+            Matrix3f transformMatrix = getBaseTransformMatrixFromNormalizedDirectionVector(normalizedBase, baseYaw);
             if (!normalizeBase) // if the base wasn't supposed to get normalized, re-scale to compensate for the prior normalization
                 transformMatrix.multiply(Matrix3f.scale(baseScale, baseScale, baseScale));
             vector.transform(transformMatrix); // matrix multiplication, vector is now in the new base :D
         }
     }
 
+    /**
+     * @author apace100
+     * @author Alluysl
+     * Transforms a vector from the local space of this instance to global space.
+     * The "local" space may be world space (no transformation), or relative to the entity's facing (LOCAL), its velocity (VELOCITY), et cetera
+     * @param vector the vector to transform
+     * @param entity the entity to align the local space to
+     * */
     public void toGlobal(Vec3f vector, Entity entity){
-        Vec3d base;
+        Vec3d baseForwardVector;
 
         switch (this){
 
@@ -67,20 +98,20 @@ public enum Space {
             case LOCAL:
             case LOCAL_HORIZONTAL:
             case LOCAL_HORIZONTAL_NORMALIZED:
-                base = entity.getRotationVector();
+                baseForwardVector = entity.getRotationVector();
                 if (this != LOCAL) // horizontal
-                    base = new Vec3d(base.getX(), 0, base.getZ());
-                rotateVectorToBase(base, vector, this == LOCAL_HORIZONTAL_NORMALIZED);
+                    baseForwardVector = new Vec3d(baseForwardVector.getX(), 0, baseForwardVector.getZ());
+                transformVectorToBase(baseForwardVector, vector, entity.getYaw(), this == LOCAL_HORIZONTAL_NORMALIZED);
                 break;
 
             case VELOCITY:
             case VELOCITY_NORMALIZED:
             case VELOCITY_HORIZONTAL:
             case VELOCITY_HORIZONTAL_NORMALIZED:
-                base = entity.getVelocity();
+                baseForwardVector = entity.getVelocity();
                 if (this == VELOCITY_HORIZONTAL || this == VELOCITY_HORIZONTAL_NORMALIZED)
-                    base = new Vec3d(base.getX(), 0, base.getZ());
-                rotateVectorToBase(base, vector, this == VELOCITY_NORMALIZED || this == VELOCITY_HORIZONTAL_NORMALIZED);
+                    baseForwardVector = new Vec3d(baseForwardVector.getX(), 0, baseForwardVector.getZ());
+                transformVectorToBase(baseForwardVector, vector, entity.getYaw(), this == VELOCITY_NORMALIZED || this == VELOCITY_HORIZONTAL_NORMALIZED);
                 break;
         }
     }

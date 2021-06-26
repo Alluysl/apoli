@@ -185,8 +185,6 @@ public class EntityActions {
                     return; // velocity calculations are client-side, don't do anything on the server
                 Space space = (Space)data.get("space");
                 Vec3f vec = new Vec3f(data.getFloat("x"), data.getFloat("y"), data.getFloat("z"));
-                Vec3d vel;
-                Vec3d velH;
                 TriConsumer<Float, Float, Float> method = entity::addVelocity;
                 if(data.getBoolean("set"))
                     method = entity::setVelocity;
