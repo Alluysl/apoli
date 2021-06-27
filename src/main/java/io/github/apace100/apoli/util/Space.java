@@ -16,41 +16,47 @@ public enum Space {
      * Provides the matrix transform from the base specified by the input vector to the cardinal base.
      * The input vector is the Z (forward) axis of the base, while the calculated X axis is orthogonal to the "left" of Z. Y is such as Z is the cross product of X and Y.
      * If the input vector were to be vertical, the yaw is used to infer the X and Y vectors of the base.
+     * After determining the vectors of the base it builds the transformation matrix by laying each into a column (if you consider vectors as being in columns for multiplications).
      * @param vector the input vector the base is inferred from (forward vector of local space)
      * @param yaw the yaw of local space
      * @return the transformation matrix from local to global space
      * */
     private static Matrix3f getBaseTransformMatrixFromNormalizedDirectionVector(Vec3d vector, float yaw){
-        double[][] factors = new double[3][3]; // [line][column] if vectors are considered vertical for matrix multiplication
-        factors[1][0] = 0; // X vector is horizontal
-        // Z
-        factors[1][2] = vector.getY();
-        if (Math.abs(factors[1][2]) != 1.0F) { // Z not vertical, can infer X from it
-            factors[0][2] = vector.getX();
-            factors[2][2] = vector.getZ();
+        double xX, xZ, // X vector
+                zX = 0.0D, zY = vector.getY(), zZ = 0.0D; // Z vector
+
+        if (Math.abs(zY) != 1.0F) { // Z not vertical, can infer X from it
+            // Z
+            zX = vector.getX();
+            zZ = vector.getZ();
             // X (orthogonal to the projection of Z on the global XZ plane)
-            factors[0][0] = vector.getZ();
-            factors[2][0] = -vector.getX();
+            xX = vector.getZ();
+            xZ = -vector.getX();
             // Normalize X
-            float xFactor = (float)(1 / Math.sqrt(factors[0][0] * factors[0][0] + factors[2][0] * factors[2][0]));
-            factors[0][0] *= xFactor;
-            factors[2][0] *= xFactor;
+            float xFactor = (float)(1 / Math.sqrt(xX * xX + xZ * xZ));
+            xX *= xFactor;
+            xZ *= xFactor;
         } else {
             // If the orientation vector points straight up or straight down, use the yaw to determine the X vector (it's "on the left")
             // The pitch doesn't affect the X vector as it's a rotation around that same vector
             float trigonometricYaw = -yaw * 0.0174532925F; // pi / 180 = 0.0174532925
-            factors[0][0] = MathHelper.cos(trigonometricYaw);
-            factors[2][0] = -MathHelper.sin(trigonometricYaw);
+            xX = MathHelper.cos(trigonometricYaw);
+            xZ = -MathHelper.sin(trigonometricYaw);
         }
-        // Y (cross product of Z and X, simplified by the fact that X has a Y component of 0)
-        factors[0][1] = factors[1][2] * factors[2][0];
-        factors[1][1] = factors[2][2] * factors[0][0] - factors[0][2] * factors[2][0];
-        factors[2][1] = -factors[1][2] * factors[0][0];
 
         Matrix3f res = new Matrix3f();
-        for (int i = 0; i < 3; ++i)
-            for (int j = 0; j < 3; ++j)
-                res.set(i, j, (float)factors[i][j]);
+        // X
+        res.set(0, 0, (float)xX);
+        res.set(1, 0, 0.0F); // X vector is horizontal, set its Y component (a10 (mathematically a21)) to 0
+        res.set(2, 0, (float)xZ);
+        // Y (cross product of Z and X, simplified by the fact that X has a Y component of 0)
+        res.set(0, 1, (float)(zY * xZ));
+        res.set(1, 1, (float)(zZ * xX - zX * xZ));
+        res.set(2, 1, (float)(-zY * xX));
+        // Z
+        res.set(0, 2, (float)zX);
+        res.set(1, 2, (float)zY);
+        res.set(2, 2, (float)zZ);
         return res;
     }
 
@@ -65,7 +71,7 @@ public enum Space {
     private static void transformVectorToBase(Vec3d baseForwardVector, Vec3f vector, float baseYaw, boolean normalizeBase) {
 
         double baseScaleD = baseForwardVector.length();
-        if (baseScaleD <= 0.007){ // tweak value if too high, may be a bit too aggressive
+        if (baseScaleD <= 0.007D){ // tweak value if too high, may be a bit too aggressive
             vector.set(Vec3f.ZERO);
         } else {
             float baseScale = (float)baseScaleD;
