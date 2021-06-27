@@ -57,6 +57,45 @@ public class BlockConditions {
             .add("comparison", ApoliDataTypes.COMPARISON)
             .add("compare_to", SerializableDataTypes.INT),
             (data, block) -> ((Comparison)data.get("comparison")).compare(block.getBlockPos().getY(), data.getInt("compare_to"))));
+        register(new ConditionFactory<>(Apoli.identifier("distance_from_coordinates"), new SerializableData()
+            .add("x", SerializableDataTypes.INT, 0)
+            .add("y", SerializableDataTypes.INT, 0)
+            .add("z", SerializableDataTypes.INT, 0)
+            .add("ignore_x", SerializableDataTypes.BOOLEAN, false)
+            .add("ignore_y", SerializableDataTypes.BOOLEAN, false)
+            .add("ignore_z", SerializableDataTypes.BOOLEAN, false)
+            .add("mode", SerializableDataTypes.STRING, "euclidean")
+            .add("comparison", ApoliDataTypes.COMPARISON)
+            .add("compare_to", SerializableDataTypes.DOUBLE), // not int because diagonal distances may not be integers, not float because Math.sqrt returns a double so we might as well use the precision we get
+            (data, block) -> {
+                BlockPos blockPos = block.getBlockPos();
+                int x = data.getInt("x"), y = data.getInt("y"), z = data.getInt("z");
+                double distance;
+                switch (data.getString("mode")){
+                    case "euclidean": case "circle": case "sphere":
+                        distance = Math.sqrt(
+                                (data.getBoolean("ignore_x") ? 0 : (blockPos.getX() - x) * (blockPos.getX() - x))
+                                + (data.getBoolean("ignore_y") ? 0 : (blockPos.getY() - y) * (blockPos.getY() - y))
+                                + (data.getBoolean("ignore_z") ? 0 : (blockPos.getZ() - z) * (blockPos.getZ() - z))
+                        );
+                        break;
+                    case "manhattan": case "star":
+                        distance = (data.getBoolean("ignore_x") ? 0 : blockPos.getX() - x)
+                                + (data.getBoolean("ignore_y") ? 0 : blockPos.getY() - y)
+                                + (data.getBoolean("ignore_z") ? 0 : blockPos.getZ() - z);
+                        break;
+                    case "chebyshev": case "cube":
+                        distance = Math.max(
+                                Math.max(data.getBoolean("ignore_x") ? 0 : blockPos.getX() - x,
+                                        data.getBoolean("ignore_y") ? 0 : blockPos.getY() - y),
+                                data.getBoolean("ignore_z") ? 0 : blockPos.getZ() - z
+                        );
+                        break;
+                    default: // unrecognized
+                        return false;
+                }
+                return ((Comparison)data.get("comparison")).compare(distance, data.getDouble("compare_to"));
+            } ));
         register(new ConditionFactory<>(Apoli.identifier("block"), new SerializableData()
             .add("block", SerializableDataTypes.BLOCK),
             (data, block) -> block.getBlockState().isOf((Block)data.get("block"))));
