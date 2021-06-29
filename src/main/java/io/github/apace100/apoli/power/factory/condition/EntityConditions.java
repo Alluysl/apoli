@@ -9,6 +9,7 @@ import io.github.apace100.apoli.mixin.EntityAccessor;
 import io.github.apace100.apoli.power.*;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.apoli.util.Comparison;
+import io.github.apace100.apoli.util.DistanceFromCoordinatesConditionRegistry;
 import io.github.apace100.apoli.util.Shape;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataType;
@@ -236,6 +237,10 @@ public class EntityConditions {
                 }
                 return comparison.compare(count, compareTo);
             }));
+        for (String alias : DistanceFromCoordinatesConditionRegistry.getAliases())
+            register(new ConditionFactory<>(Apoli.identifier(alias),
+                    DistanceFromCoordinatesConditionRegistry.getSerializableData(),
+                    DistanceFromCoordinatesConditionRegistry::testCondition)); // put in one place because can be used on blocks or entities
         register(new ConditionFactory<>(Apoli.identifier("dimension"), new SerializableData()
             .add("dimension", SerializableDataTypes.IDENTIFIER),
             (data, entity) -> entity.world.getRegistryKey() == RegistryKey.of(Registry.WORLD_KEY, data.getId("dimension"))));
