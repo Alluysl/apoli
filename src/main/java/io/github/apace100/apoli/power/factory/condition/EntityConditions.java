@@ -239,7 +239,7 @@ public class EntityConditions {
             }));
         for (String alias : DistanceFromCoordinatesConditionRegistry.getAliases())
             register(new ConditionFactory<>(Apoli.identifier(alias),
-                    DistanceFromCoordinatesConditionRegistry.getSerializableData(),
+                    DistanceFromCoordinatesConditionRegistry.getSerializableData(alias),
                     DistanceFromCoordinatesConditionRegistry::testCondition)); // put in one place because can be used on blocks or entities
         register(new ConditionFactory<>(Apoli.identifier("dimension"), new SerializableData()
             .add("dimension", SerializableDataTypes.IDENTIFIER),

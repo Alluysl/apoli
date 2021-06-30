@@ -1,113 +1,209 @@
 package io.github.apace100.apoli.util;
 
+import io.github.apace100.apoli.Apoli;
+import io.github.apace100.apoli.component.PowerHolderComponent;
 import io.github.apace100.apoli.data.ApoliDataTypes;
+import io.github.apace100.apoli.power.ModifyPlayerSpawnPower;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.block.pattern.CachedBlockPosition;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
 
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 // Dummy class to register the distance_from_spawn conditions and avoid duplicating code
 
+/**
+ * @author Alluysl
+ * Handles the registry of the distance_from_spawn condition in both block and entity conditions to avoid duplicating code.
+ * */
 public class DistanceFromCoordinatesConditionRegistry {
 
+//    public final static Map<ServerPlayerEntity, Pair<ServerWorld, BlockPos>> loggedPlayerSpawns = new ConcurrentHashMap<>();
+
+    /**
+     * Returns an array of aliases for the condition.
+     * */
     public static String[] getAliases(){
         return new String[]{"distance_from_spawn", "distance_from_coordinates"};
     }
 
-    public static SerializableData getSerializableData(){
-        // Using doubles and not ints because the player position is a vector of doubles and the sqrt function (for the distance) returns a double so we might as well use that precision
-        return new SerializableData()
-                .add("reference", SerializableDataTypes.STRING, "world_spawn")
-                .add("consider_modify_player_spawn_powers", SerializableDataTypes.BOOLEAN, true)
-                .add("x_offset", SerializableDataTypes.DOUBLE, 0.0)
-                .add("y_offset", SerializableDataTypes.DOUBLE, 0.0)
-                .add("z_offset", SerializableDataTypes.DOUBLE, 0.0)
-                .add("ignore_x", SerializableDataTypes.BOOLEAN, false)
-                .add("ignore_y", SerializableDataTypes.BOOLEAN, false)
-                .add("ignore_z", SerializableDataTypes.BOOLEAN, false)
-                .add("shape", SerializableDataTypes.STRING, "euclidean")
-                .add("scale_reference_to_dimension", SerializableDataTypes.BOOLEAN, true)
-                .add("scale_distance_to_dimension", SerializableDataTypes.BOOLEAN, false)
-                .add("comparison", ApoliDataTypes.COMPARISON)
-                .add("compare_to", SerializableDataTypes.DOUBLE);
+    /**
+     * Infers the logically meaningful result of a distance comparison for out of bounds points (different dimension with corresponding parameter set, or infinite coordinates).
+     * @param comparison the comparison set in the data
+     * @return the result of that comparison against out-of-bounds points
+     * */
+    private static boolean compareOutOfBounds(Comparison comparison){
+        return comparison == Comparison.NOT_EQUAL || comparison == Comparison.GREATER_THAN || comparison == Comparison.GREATER_THAN_OR_EQUAL;
     }
 
-    private static boolean firstCouldNotGetWarning = true;
-    private static void warnCouldNotGetObject(String object, String from, boolean assumption){
-        if (firstCouldNotGetWarning){
-            firstCouldNotGetWarning = false;
-            System.out.println("Could not retrieve " + object + " from " + from + " for distance_from_spawn condition, assuming " + assumption + ".");
+    private static final ArrayList<Object> previousWarnings = new ArrayList<>();
+    private static void warnOnce(String warning, Object key){
+        if (!previousWarnings.contains(key)){
+            previousWarnings.add(key);
+            Apoli.LOGGER.warn(warning);
         }
+    }
+    private static void warnOnce(String warning){ warnOnce(warning, warning); }
+
+    /**
+     * Warns the user of an issue getting an information needed for expected behavior, but only once (doesn't spam the console).
+     * @param object the object that couldn't be acquired
+     * @param from the object that was supposed to provide the required object
+     * @param assumption the result assumed because of the lack of information
+     * @param whatFor what the result describes
+     * @return the assumed result
+     * */
+    private static <T> T warnCouldNotGetObject(String object, String from, T assumption, String whatFor){
+        warnOnce("Could not retrieve " + object + " from " + from + " for distance_from_spawn condition, assuming " + assumption + " for " + whatFor + ".");
+        return assumption;
+    }
+
+    public static SerializableData getSerializableData(String alias){
+        // Using doubles and not ints because the player position is a vector of doubles and the sqrt function (for the distance) returns a double so we might as well use that precision
+        return new SerializableData()
+                .addFunctionedDefault("reference", SerializableDataTypes.STRING, data -> alias.equals("distance_from_coordinates") ? "world_origin" : "world_spawn") // the reference point
+//                .add("check_modified_spawn", SerializableDataTypes.BOOLEAN, true) // whether to check for modified spawns
+                .add("x_offset", SerializableDataTypes.DOUBLE, 0.0) // offset to the reference point
+                .add("y_offset", SerializableDataTypes.DOUBLE, 0.0) // idem
+                .add("z_offset", SerializableDataTypes.DOUBLE, 0.0) // idem
+                .add("ignore_x", SerializableDataTypes.BOOLEAN, false) // ignore the axis in the distance calculation
+                .add("ignore_y", SerializableDataTypes.BOOLEAN, false) // idem
+                .add("ignore_z", SerializableDataTypes.BOOLEAN, false) // idem
+                .add("shape", SerializableDataTypes.STRING, "euclidean") // the shape / distance type
+                .add("scale_reference_to_dimension", SerializableDataTypes.BOOLEAN, true) // whether to scale the reference's coordinates according to the dimension it's in and the player is in
+                .add("scale_distance_to_dimension", SerializableDataTypes.BOOLEAN, false) // whether to scale the calculated distance to the current dimension
+                .add("comparison", ApoliDataTypes.COMPARISON)
+                .add("compare_to", SerializableDataTypes.DOUBLE)
+                .add("set_result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, false) // if the dimension is not the same as the reference's, whether to set it to the value below
+                .addFunctionedDefault("result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, data -> compareOutOfBounds((Comparison)data.get("comparison")));
     }
 
     public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block){
         return testCondition(data, block, null);
     }
-
     public static boolean testCondition(SerializableData.Instance data, LivingEntity entity){
         return testCondition(data, null, entity);
     }
 
-    // Assumes that either block or entity is non-null
+    /**
+     * Tests the distance_from_spawn condition for either a block or an entity.
+     * No more and no less than one of either the block or entity argument must be null.
+     * @param data the condition's parsed data
+     * @param block the block to check the condition for
+     * @param entity the entity to check the condition for
+     * @return the result of the distance comparison
+     * */
     public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block, LivingEntity entity){
+        boolean scaleReferenceToDimension = data.getBoolean("scale_reference_to_dimension"),
+            setResultOnWrongDimension = data.getBoolean("set_result_on_wrong_dimension"),
+            resultOnWrongDimension = data.getBoolean("result_on_wrong_dimension");
+        double x = 0, y = 0, z = 0;
         Vec3d pos;
-        WorldView worldView;
+        World world;
         if (block != null){
             BlockPos blockPos = block.getBlockPos();
             pos = new Vec3d(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-            worldView = block.getWorld();
+            WorldView worldView = block.getWorld();
+            if (!(worldView instanceof World))
+                return warnCouldNotGetObject("world", "block", compareOutOfBounds((Comparison)data.get("comparison")), "condition");
+            else
+                world = (World)worldView;
         } else {
             pos = entity.getPos();
-            worldView = entity.getEntityWorld();
+            world = entity.getEntityWorld();
         }
-        double x = 0, y = 0, z = 0;
-        double currentDimensionCoordinateScale = worldView.getDimension().getCoordinateScale();
-        if (!(worldView instanceof World)){
-            warnCouldNotGetObject("world", block != null ? "block" : "entity", false);
-            return false;
-        }
+        double currentDimensionCoordinateScale = world.getDimension().getCoordinateScale();
+
         switch (data.getString("reference")){
-            case "origin":
-                break;
-            case "world_spawn":
-                BlockPos spawnPos;
-                if (worldView instanceof ClientWorld)
-                    spawnPos = ((ClientWorld)worldView).getSpawnPos();
-                else if (worldView instanceof ServerWorld)
-                    spawnPos = ((ServerWorld)worldView).getSpawnPos();
-                else {
-                    warnCouldNotGetObject("world", block != null ? "block" : "entity", false);
-                    return false;
+            case "player_spawn":
+//                 if (entity instanceof ServerPlayerEntity) { // null instance of AnyClass is always false so the block case is covered
+//                    Pair<ServerWorld, BlockPos> playerSpawn = loggedPlayerSpawns.get((ServerPlayerEntity) entity);
+//                    if (playerSpawn != null && playerSpawn.getLeft() != null && playerSpawn.getRight() != null) {
+//                        double distanceMultiplier = 1.0D;
+//                        if (scaleReferenceToDimension) {
+//                            MinecraftServer server = entity.getServer();
+//                            if (server == null){
+//                                warnCouldNotGetObject("server", "entity", 1.0D,
+//                                        "respawn dimension distance multiplier, and wrong dimension");
+//                                if (setResultOnWrongDimension)
+//                                    return resultOnWrongDimension;
+//                            }
+//                            else {
+//                                ServerWorld playerSpawnWorld = server.getWorld(((ServerPlayerEntity) entity).getSpawnPointDimension());
+//                                if (playerSpawnWorld == null)
+//                                    warnCouldNotGetObject("spawn world", "entity", 1.0D, "respawn dimension distance multiplier");
+//                                else if (setResultOnWrongDimension && world != playerSpawnWorld)
+//                                    return resultOnWrongDimension;
+//                                else
+//                                    distanceMultiplier = playerSpawnWorld.getDimension().getCoordinateScale();
+//                            }
+//                        }
+//                        x = playerSpawn.getRight().getX() * distanceMultiplier;
+//                        y = playerSpawn.getRight().getY() * distanceMultiplier;
+//                        z = playerSpawn.getRight().getZ() * distanceMultiplier;
+//                        break;
+//                    }
+//                 }
+//                 // No break on purpose (defaulting to natural spawn)
+            case "player_natural_spawn": // spawn not set through commands or beds/anchors
+                if (entity instanceof PlayerEntity) { // && data.getBoolean("check_modified_spawn")){
+//                    List<ModifyPlayerSpawnPower> powerList = PowerHolderComponent.getPowers(entity, ModifyPlayerSpawnPower.class);
+//                    if (powerList.size() > 0){
+//                        Pair<ServerWorld, BlockPos> playerSpawn = powerList.get(0).getLastSpawn();
+//                        if (playerSpawn != null){
+//                            if (setResultOnWrongDimension && worldView != playerSpawn.getLeft())
+//                                return resultOnWrongDimension;
+//                            double distanceMultiplier = 1.0D;
+//                            if (scaleReferenceToDimension) {
+//                                distanceMultiplier = playerSpawn.getLeft().getDimension().getCoordinateScale();
+//                            }
+//                            x = playerSpawn.getRight().getX() * distanceMultiplier;
+//                            y = playerSpawn.getRight().getY() * distanceMultiplier;
+//                            z = playerSpawn.getRight().getZ() * distanceMultiplier;
+//                            break;
+//                        }
+//                    }
+                    warnOnce("Used reference '" + data.getString("reference") + "' which is not implemented yet, defaulting to world spawn.");
                 }
-//                        System.out.println("ww: " + worldView.hashCode());
+                // No break on purpose (defaulting to world spawn)
+                if (entity == null)
+                    warnOnce("Used entity-condition-only reference point in block condition, defaulting to world spawn.");
+            case "world_spawn":
+                if (setResultOnWrongDimension && world.getRegistryKey() != World.OVERWORLD)
+                    return resultOnWrongDimension;
+                BlockPos spawnPos;
+                if (world instanceof ClientWorld)
+                    spawnPos = ((ClientWorld)world).getSpawnPos();
+                else if (world instanceof ServerWorld)
+                    spawnPos = ((ServerWorld)world).getSpawnPos();
+                else
+                    return warnCouldNotGetObject("world with spawn position", block != null ? "block" : "entity", compareOutOfBounds((Comparison)data.get("comparison")), "condition");
                 x = spawnPos.getX();
                 y = spawnPos.getY();
                 z = spawnPos.getZ();
-//                        if (((World) worldView).getServer() != null)
-//                            for (ServerWorld world : ((World) worldView).getServer().getWorlds())
-//                                System.out.println(world.hashCode() + " " + (world == worldView));
                 break;
-            case "player_set_spawn":
-                // TODO nest that inside an if that tests if the spawn was set?
-                // No break on purpose
-            case "player_natural_spawn":
-                if (!(entity instanceof PlayerEntity)) // null instance of AnyClass is always false so the block case is covered
-                    return false; // cannot infer the spawn of a block or non-player entity
-                // TODO using consider_modify_player_spawn_powers
+            case "world_origin":
                 break;
         }
         x += data.getDouble("x_offset");
         y += data.getDouble("y_offset");
         z += data.getDouble("z_offset");
-        if (data.getBoolean("scale_reference_to_dimension") && (x != 0 || z != 0)){
+        if (scaleReferenceToDimension && (x != 0 || z != 0)){
             if (currentDimensionCoordinateScale == 0) // pocket dimensions?
                 return false; // coordinate scale 0 means it takes 0 blocks to travel in the OW to travel 1 block in the dimension, so the dimension is folded on 0 0, so unless the OW reference is at 0 0, it gets scaled to infinity
             x /= currentDimensionCoordinateScale;
@@ -119,8 +215,7 @@ public class DistanceFromCoordinatesConditionRegistry {
                 zDistance = data.getBoolean("ignore_z") ? 0 : Math.abs(pos.getZ() - z);
         if (data.getBoolean("scale_distance_to_dimension") && (xDistance != 0 || zDistance != 0)){
             if (currentDimensionCoordinateScale == 0){
-                Comparison comparison = (Comparison)data.get("comparison");
-                return comparison == Comparison.NOT_EQUAL || comparison == Comparison.GREATER_THAN || comparison == Comparison.GREATER_THAN_OR_EQUAL; // nonzero would get scaled to infinity
+                return compareOutOfBounds((Comparison)data.get("comparison")); // nonzero would get scaled to infinity
             }
             xDistance /= currentDimensionCoordinateScale;
             zDistance /= currentDimensionCoordinateScale;
@@ -130,8 +225,7 @@ public class DistanceFromCoordinatesConditionRegistry {
             case "manhattan", "star" -> distance = xDistance + yDistance + zDistance;
             case "chebyshev", "cube" -> distance = Math.max(Math.max(xDistance, yDistance), zDistance);
             default -> { // unrecognized
-                warnCouldNotGetObject("recognized shape name", "data", false);
-                return false;
+                return warnCouldNotGetObject("recognized shape name", "data", compareOutOfBounds((Comparison)data.get("comparison")), "condition (got '" + data.getString("shape") + "')");
             }
         }
         return ((Comparison)data.get("comparison")).compare(distance, data.getDouble("compare_to"));

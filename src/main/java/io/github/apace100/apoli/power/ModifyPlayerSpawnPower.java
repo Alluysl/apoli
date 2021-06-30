@@ -4,7 +4,6 @@ import io.github.apace100.apoli.Apoli;
 import net.minecraft.entity.Dismounting;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -32,6 +31,7 @@ public class ModifyPlayerSpawnPower extends Power {
     public final String spawnStrategy;
     public final StructureFeature structure;
     public final SoundEvent spawnSound;
+//    private Pair<ServerWorld, BlockPos> lastSpawn = null;
 
     public ModifyPlayerSpawnPower(PowerType<?> type, LivingEntity entity, RegistryKey<World> dimension, float dimensionDistanceMultiplier, Identifier biomeId, String spawnStrategy, StructureFeature<?> structure, SoundEvent spawnSound) {
         super(type, entity);
@@ -68,6 +68,10 @@ public class ModifyPlayerSpawnPower extends Power {
             }
         }
     }
+
+//    public Pair<ServerWorld, BlockPos> getLastSpawn(){
+//        return lastSpawn;
+//    }
 
     public Pair<ServerWorld, BlockPos> getSpawn(boolean isSpawnObstructed) {
         if(entity instanceof ServerPlayerEntity) {
@@ -124,6 +128,7 @@ public class ModifyPlayerSpawnPower extends Power {
                 ChunkPos structureChunkPos;
 
                 if(structurePos == null) {
+//                    return lastSpawn = null;
                     return null;
                 }
                 structureChunkPos = new ChunkPos(structurePos.getX() >> 4, structurePos.getZ() >> 4);
@@ -136,10 +141,13 @@ public class ModifyPlayerSpawnPower extends Power {
                 mutable = new BlockPos(tpPos.x, tpPos.y, tpPos.z).mutableCopy();
                 BlockPos spawnLocation = mutable;
                 world.getChunkManager().addTicket(ChunkTicketType.START, new ChunkPos(spawnLocation), 11, Unit.INSTANCE);
+//                return lastSpawn = new Pair(world, spawnLocation);
                 return new Pair(world, spawnLocation);
             }
+//            return lastSpawn = null;
             return null;
         }
+//        return lastSpawn = null;
         return null;
     }
 

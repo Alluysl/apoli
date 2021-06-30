@@ -2,13 +2,16 @@ package io.github.apace100.apoli.mixin;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Either;
+import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.access.EndRespawningEntity;
 import io.github.apace100.apoli.component.PowerHolderComponent;
 import io.github.apace100.apoli.power.ModifyDamageTakenPower;
 import io.github.apace100.apoli.power.ModifyPlayerSpawnPower;
 import io.github.apace100.apoli.power.PreventSleepPower;
+import io.github.apace100.apoli.util.DistanceFromCoordinatesConditionRegistry;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.GameStateChangeS2CPacket;
 import net.minecraft.screen.ScreenHandlerListener;
 import net.minecraft.server.MinecraftServer;
@@ -22,6 +25,7 @@ import net.minecraft.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,9 +33,13 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin extends PlayerEntity implements ScreenHandlerListener, EndRespawningEntity {
@@ -93,15 +101,55 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Sc
     @Inject(at = @At("HEAD"), method = "getSpawnPointPosition", cancellable = true)
     private void modifyPlayerSpawnPosition(CallbackInfoReturnable<BlockPos> info) {
         if(!this.origins_isEndRespawning && PowerHolderComponent.getPowers(this, ModifyPlayerSpawnPower.class).size() > 0) {
+//            List<ModifyPlayerSpawnPower> powerList = PowerHolderComponent.getPowers(this, ModifyPlayerSpawnPower.class);
+//            if (powerList.size() > 0) {
+//                BlockPos newPos = findPlayerSpawn();
+//
+//                // Log new spawn
+//                MinecraftServer server = getServer();
+//                if (server == null)
+//                    Apoli.LOGGER.warn("Couldn't get server from player while logging spawn point, modified spawn not logged.");
+//                else
+//                    DistanceFromCoordinatesConditionRegistry.loggedPlayerSpawns.put(
+//                            ((ServerPlayerEntity)(Object)this),
+//                            new Pair<>(server.getWorld(powerList.get(0).dimension), newPos));
+//
+//                // Redirect spawn
             if(spawnPointPosition == null) {
+//                    info.setReturnValue(newPos);
                 info.setReturnValue(findPlayerSpawn());
             } else if(hasObstructedSpawn()) {
                 networkHandler.sendPacket(new GameStateChangeS2CPacket(GameStateChangeS2CPacket.NO_RESPAWN_BLOCK, 0.0F));
+//                    info.setReturnValue(newPos);
                 info.setReturnValue(findPlayerSpawn());
             }
+//            }
         }
     }
 
+//    @Inject(method = "setSpawnPoint", at = @At("TAIL"))
+//    private void logSetSpawnPoint(RegistryKey<World> dimension, BlockPos pos, float angle, boolean spawnPointSet, boolean sendMessage, CallbackInfo ci){
+//        logSpawnPoint();
+//    }
+//    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+//    private void logNbtSetSpawnPoint(NbtCompound nbt, CallbackInfo ci){
+//        logSpawnPoint();
+//    }
+//
+//    // Will be called after the spawn position and dimension are set for the player (including upon connecting)
+//    private void logSpawnPoint(){
+//        ServerWorld world = null;
+//        BlockPos position = null;
+//        MinecraftServer server = getServer();
+//        if (server == null)
+//            Apoli.LOGGER.warn("Couldn't get server from player while logging spawn point, world spawn logged.");
+//        else {
+//            world = server.getWorld(spawnPointDimension);
+//            position = spawnPointPosition;
+//        }
+//        System.out.println(((ServerPlayerEntity)(Object)this) + " " + world.getRegistryKey() + " " + position);
+//        DistanceFromCoordinatesConditionRegistry.loggedPlayerSpawns.put(((ServerPlayerEntity)(Object)this), new Pair<>(world, position));
+//    }
 
     @Inject(at = @At("HEAD"), method = "isSpawnPointSet", cancellable = true)
     private void modifySpawnPointSet(CallbackInfoReturnable<Boolean> info) {
