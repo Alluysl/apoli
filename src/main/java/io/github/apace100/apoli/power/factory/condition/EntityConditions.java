@@ -54,6 +54,10 @@ import java.util.function.Predicate;
 
 public class EntityConditions {
 
+    private static int getResourceValue(Power power){
+        return power instanceof VariableIntPower ? ((VariableIntPower)power).getValue() : power instanceof CooldownPower ? ((CooldownPower)power).getRemainingTicks() : 0;
+    }
+
     @SuppressWarnings("unchecked")
     public static void register() {
         register(new ConditionFactory<>(Apoli.identifier("constant"), new SerializableData()
@@ -189,15 +193,19 @@ public class EntityConditions {
             .add("comparison", ApoliDataTypes.COMPARISON)
             .add("compare_to", SerializableDataTypes.INT),
             (data, entity) -> {
-                int resourceValue = 0;
                 PowerHolderComponent component = PowerHolderComponent.KEY.get(entity);
                 Power p = component.getPower((PowerType<?>)data.get("resource"));
-                if(p instanceof VariableIntPower) {
-                    resourceValue = ((VariableIntPower)p).getValue();
-                } else if(p instanceof CooldownPower) {
-                    resourceValue = ((CooldownPower)p).getRemainingTicks();
-                }
-                return ((Comparison)data.get("comparison")).compare(resourceValue, data.getInt("compare_to"));
+                return ((Comparison)data.get("comparison")).compare(getResourceValue(p), data.getInt("compare_to"));
+            }));
+        register(new ConditionFactory<>(Apoli.identifier("resources"), new SerializableData()
+            .add("resource", ApoliDataTypes.POWER_TYPE)
+            .add("comparison", ApoliDataTypes.COMPARISON)
+            .add("compare_to", ApoliDataTypes.POWER_TYPE),
+            (data, entity) -> {
+                PowerHolderComponent component = PowerHolderComponent.KEY.get(entity);
+                Power p = component.getPower((PowerType<?>)data.get("resource"));
+                Power pc = component.getPower((PowerType<?>)data.get("compare_to"));
+                return ((Comparison)data.get("comparison")).compare(getResourceValue(p), getResourceValue(pc));
             }));
         register(new ConditionFactory<>(Apoli.identifier("air"), new SerializableData()
             .add("comparison", ApoliDataTypes.COMPARISON)
