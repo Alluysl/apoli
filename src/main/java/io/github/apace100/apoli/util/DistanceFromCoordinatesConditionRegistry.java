@@ -1,39 +1,26 @@
 package io.github.apace100.apoli.util;
 
 import io.github.apace100.apoli.Apoli;
-import io.github.apace100.apoli.component.PowerHolderComponent;
 import io.github.apace100.apoli.data.ApoliDataTypes;
-import io.github.apace100.apoli.power.ModifyPlayerSpawnPower;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.block.pattern.CachedBlockPosition;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
 
-import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-// Dummy class to register the distance_from_spawn conditions and avoid duplicating code
 
 /**
  * @author Alluysl
  * Handles the registry of the distance_from_spawn condition in both block and entity conditions to avoid duplicating code.
  * */
 public class DistanceFromCoordinatesConditionRegistry {
-
-//    public final static Map<ServerPlayerEntity, Pair<ServerWorld, BlockPos>> loggedPlayerSpawns = new ConcurrentHashMap<>();
 
     /**
      * Returns an array of aliases for the condition.
@@ -115,6 +102,7 @@ public class DistanceFromCoordinatesConditionRegistry {
         double x = 0, y = 0, z = 0;
         Vec3d pos;
         World world;
+        // Get the world and its scale from the block/entity
         if (block != null){
             BlockPos blockPos = block.getBlockPos();
             pos = new Vec3d(blockPos.getX(), blockPos.getY(), blockPos.getZ());
@@ -129,55 +117,15 @@ public class DistanceFromCoordinatesConditionRegistry {
         }
         double currentDimensionCoordinateScale = world.getDimension().getCoordinateScale();
 
+        // Get the reference's scaled coordinates
         switch (data.getString("reference")){
             case "player_spawn":
 //                 if (entity instanceof ServerPlayerEntity) { // null instance of AnyClass is always false so the block case is covered
-//                    Pair<ServerWorld, BlockPos> playerSpawn = loggedPlayerSpawns.get((ServerPlayerEntity) entity);
-//                    if (playerSpawn != null && playerSpawn.getLeft() != null && playerSpawn.getRight() != null) {
-//                        double distanceMultiplier = 1.0D;
-//                        if (scaleReferenceToDimension) {
-//                            MinecraftServer server = entity.getServer();
-//                            if (server == null){
-//                                warnCouldNotGetObject("server", "entity", 1.0D,
-//                                        "respawn dimension distance multiplier, and wrong dimension");
-//                                if (setResultOnWrongDimension)
-//                                    return resultOnWrongDimension;
-//                            }
-//                            else {
-//                                ServerWorld playerSpawnWorld = server.getWorld(((ServerPlayerEntity) entity).getSpawnPointDimension());
-//                                if (playerSpawnWorld == null)
-//                                    warnCouldNotGetObject("spawn world", "entity", 1.0D, "respawn dimension distance multiplier");
-//                                else if (setResultOnWrongDimension && world != playerSpawnWorld)
-//                                    return resultOnWrongDimension;
-//                                else
-//                                    distanceMultiplier = playerSpawnWorld.getDimension().getCoordinateScale();
-//                            }
-//                        }
-//                        x = playerSpawn.getRight().getX() * distanceMultiplier;
-//                        y = playerSpawn.getRight().getY() * distanceMultiplier;
-//                        z = playerSpawn.getRight().getZ() * distanceMultiplier;
-//                        break;
-//                    }
+//
 //                 }
 //                 // No break on purpose (defaulting to natural spawn)
             case "player_natural_spawn": // spawn not set through commands or beds/anchors
                 if (entity instanceof PlayerEntity) { // && data.getBoolean("check_modified_spawn")){
-//                    List<ModifyPlayerSpawnPower> powerList = PowerHolderComponent.getPowers(entity, ModifyPlayerSpawnPower.class);
-//                    if (powerList.size() > 0){
-//                        Pair<ServerWorld, BlockPos> playerSpawn = powerList.get(0).getLastSpawn();
-//                        if (playerSpawn != null){
-//                            if (setResultOnWrongDimension && worldView != playerSpawn.getLeft())
-//                                return resultOnWrongDimension;
-//                            double distanceMultiplier = 1.0D;
-//                            if (scaleReferenceToDimension) {
-//                                distanceMultiplier = playerSpawn.getLeft().getDimension().getCoordinateScale();
-//                            }
-//                            x = playerSpawn.getRight().getX() * distanceMultiplier;
-//                            y = playerSpawn.getRight().getY() * distanceMultiplier;
-//                            z = playerSpawn.getRight().getZ() * distanceMultiplier;
-//                            break;
-//                        }
-//                    }
                     warnOnce("Used reference '" + data.getString("reference") + "' which is not implemented yet, defaulting to world spawn.");
                 }
                 // No break on purpose (defaulting to world spawn)
@@ -209,6 +157,8 @@ public class DistanceFromCoordinatesConditionRegistry {
             x /= currentDimensionCoordinateScale;
             z /= currentDimensionCoordinateScale;
         }
+
+        // Get the distance to these coordinates
         double distance,
                 xDistance = data.getBoolean("ignore_x") ? 0 : Math.abs(pos.getX() - x),
                 yDistance = data.getBoolean("ignore_y") ? 0 : Math.abs(pos.getY() - y),
@@ -217,8 +167,8 @@ public class DistanceFromCoordinatesConditionRegistry {
             if (currentDimensionCoordinateScale == 0){
                 return compareOutOfBounds((Comparison)data.get("comparison")); // nonzero would get scaled to infinity
             }
-            xDistance /= currentDimensionCoordinateScale;
-            zDistance /= currentDimensionCoordinateScale;
+            xDistance *= currentDimensionCoordinateScale;
+            zDistance *= currentDimensionCoordinateScale;
         }
         switch (data.getString("shape")) {
             case "euclidean", "circle", "sphere" -> distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance + zDistance * zDistance);
@@ -228,6 +178,7 @@ public class DistanceFromCoordinatesConditionRegistry {
                 return warnCouldNotGetObject("recognized shape name", "data", compareOutOfBounds((Comparison)data.get("comparison")), "condition (got '" + data.getString("shape") + "')");
             }
         }
+
         return ((Comparison)data.get("comparison")).compare(distance, data.getDouble("compare_to"));
     }
 }
