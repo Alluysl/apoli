@@ -2,10 +2,10 @@ package io.github.apace100.apoli.power.factory.condition;
 
 import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.data.ApoliDataTypes;
+import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.apoli.util.Comparison;
 import io.github.apace100.calio.data.SerializableData;
-import io.github.apace100.calio.data.SerializableDataType;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -34,6 +34,13 @@ public class ItemConditions {
             (data, stack) -> ((List<ConditionFactory<ItemStack>.Instance>)data.get("conditions")).stream().anyMatch(
                 condition -> condition.test(stack)
             )));
+        register(new ConditionFactory<>(Apoli.identifier("after"), new SerializableData()
+                .add("action", ApoliDataTypes.ITEM_ACTION)
+                .add("condition", ApoliDataTypes.ITEM_CONDITION),
+                (data, stack) -> {
+                    ((ActionFactory<ItemStack>.Instance)data.get("action")).accept(stack);
+                    return ((ConditionFactory<ItemStack>.Instance)data.get("condition")).test(stack);
+                }));
         register(new ConditionFactory<>(Apoli.identifier("food"), new SerializableData(),
             (data, stack) -> stack.isFood()));
         register(new ConditionFactory<>(Apoli.identifier("ingredient"), new SerializableData()

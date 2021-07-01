@@ -2,6 +2,7 @@ package io.github.apace100.apoli.power.factory.condition;
 
 import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.data.ApoliDataTypes;
+import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.apoli.util.Comparison;
 import io.github.apace100.apoli.util.DistanceFromCoordinatesConditionRegistry;
@@ -19,6 +20,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.LightType;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldView;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +44,23 @@ public class BlockConditions {
             (data, block) -> ((List<ConditionFactory<CachedBlockPosition>.Instance>)data.get("conditions")).stream().anyMatch(
                 condition -> condition.test(block)
             )));
+        register(new ConditionFactory<>(Apoli.identifier("after"), new SerializableData()
+                .add("action", ApoliDataTypes.BLOCK_ACTION)
+                .add("condition", ApoliDataTypes.BLOCK_CONDITION)
+                .add("direction", SerializableDataTypes.STRING, "north"),
+                (data, block) -> {
+                    WorldView worldView = block.getWorld();
+                    if (worldView instanceof World)
+                        ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(new Triple<>() {
+                            public World getLeft(){ return (World)worldView; }
+                            public BlockPos getMiddle(){ return block.getBlockPos(); }
+                            public Direction getRight(){
+                                Direction dir = Direction.byName(data.getString("direction").toUpperCase());
+                                return dir == null ? Direction.NORTH : dir;
+                            }
+                        });
+                    return ((ConditionFactory<CachedBlockPosition>.Instance)data.get("condition")).test(block);
+                }));
         register(new ConditionFactory<>(Apoli.identifier("offset"), new SerializableData()
             .add("condition", ApoliDataTypes.BLOCK_CONDITION)
             .add("x", SerializableDataTypes.INT, 0)

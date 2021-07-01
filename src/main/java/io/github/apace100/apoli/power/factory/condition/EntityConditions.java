@@ -7,6 +7,7 @@ import io.github.apace100.apoli.component.PowerHolderComponent;
 import io.github.apace100.apoli.data.ApoliDataTypes;
 import io.github.apace100.apoli.mixin.EntityAccessor;
 import io.github.apace100.apoli.power.*;
+import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.apoli.util.Comparison;
 import io.github.apace100.apoli.util.DistanceFromCoordinatesConditionRegistry;
@@ -17,10 +18,7 @@ import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.block.pattern.CachedBlockPosition;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.EntityGroup;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.*;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.effect.StatusEffect;
@@ -73,6 +71,13 @@ public class EntityConditions {
             (data, entity) -> ((List<ConditionFactory<LivingEntity>.Instance>)data.get("conditions")).stream().anyMatch(
                 condition -> condition.test(entity)
             )));
+        register(new ConditionFactory<>(Apoli.identifier("after"), new SerializableData()
+            .add("action", ApoliDataTypes.ENTITY_ACTION)
+            .add("condition", ApoliDataTypes.ENTITY_CONDITION),
+            (data, entity) -> {
+                ((ActionFactory< Entity >.Instance)data.get("action")).accept(entity);
+                return ((ConditionFactory<LivingEntity>.Instance)data.get("condition")).test(entity);
+            }));
         register(new ConditionFactory<>(Apoli.identifier("block_collision"), new SerializableData()
             .add("offset_x", SerializableDataTypes.FLOAT)
             .add("offset_y", SerializableDataTypes.FLOAT)
