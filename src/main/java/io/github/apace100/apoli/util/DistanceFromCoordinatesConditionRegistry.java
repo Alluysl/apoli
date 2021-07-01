@@ -76,8 +76,7 @@ public class DistanceFromCoordinatesConditionRegistry {
                 .add("scale_distance_to_dimension", SerializableDataTypes.BOOLEAN, false) // whether to scale the calculated distance to the current dimension
                 .add("comparison", ApoliDataTypes.COMPARISON)
                 .add("compare_to", SerializableDataTypes.DOUBLE)
-                .add("set_result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, false) // if the dimension is not the same as the reference's, whether to set it to the value below
-                .addFunctionedDefault("result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, data -> compareOutOfBounds((Comparison)data.get("comparison")));
+                .add("result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, null); // if set and the dimension is not the same as the reference's, the value to set the condition to
     }
 
     public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block){
@@ -97,8 +96,8 @@ public class DistanceFromCoordinatesConditionRegistry {
      * */
     public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block, LivingEntity entity){
         boolean scaleReferenceToDimension = data.getBoolean("scale_reference_to_dimension"),
-            setResultOnWrongDimension = data.getBoolean("set_result_on_wrong_dimension"),
-            resultOnWrongDimension = data.getBoolean("result_on_wrong_dimension");
+            setResultOnWrongDimension = data.isPresent("result_on_wrong_dimension"),
+            resultOnWrongDimension = setResultOnWrongDimension && data.getBoolean("result_on_wrong_dimension");
         double x = 0, y = 0, z = 0;
         Vec3d pos;
         World world;
@@ -153,7 +152,7 @@ public class DistanceFromCoordinatesConditionRegistry {
         z += data.getDouble("z_offset");
         if (scaleReferenceToDimension && (x != 0 || z != 0)){
             if (currentDimensionCoordinateScale == 0) // pocket dimensions?
-                return false; // coordinate scale 0 means it takes 0 blocks to travel in the OW to travel 1 block in the dimension, so the dimension is folded on 0 0, so unless the OW reference is at 0 0, it gets scaled to infinity
+                return compareOutOfBounds((Comparison)data.get("comparison")); // coordinate scale 0 means it takes 0 blocks to travel in the OW to travel 1 block in the dimension, so the dimension is folded on 0 0, so unless the OW reference is at 0 0, it gets scaled to infinity
             x /= currentDimensionCoordinateScale;
             z /= currentDimensionCoordinateScale;
         }
@@ -163,15 +162,12 @@ public class DistanceFromCoordinatesConditionRegistry {
                 xDistance = data.getBoolean("ignore_x") ? 0 : Math.abs(pos.getX() - x),
                 yDistance = data.getBoolean("ignore_y") ? 0 : Math.abs(pos.getY() - y),
                 zDistance = data.getBoolean("ignore_z") ? 0 : Math.abs(pos.getZ() - z);
-        if (data.getBoolean("scale_distance_to_dimension") && (xDistance != 0 || zDistance != 0)){
-            if (currentDimensionCoordinateScale == 0){
-                return compareOutOfBounds((Comparison)data.get("comparison")); // nonzero would get scaled to infinity
-            }
+        if (data.getBoolean("scale_distance_to_dimension")){
             xDistance *= currentDimensionCoordinateScale;
             zDistance *= currentDimensionCoordinateScale;
         }
         switch (data.getString("shape")) {
-            case "euclidean", "circle", "sphere" -> distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance + zDistance * zDistance);
+            case "euclidean", "sphere" -> distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance + zDistance * zDistance);
             case "manhattan", "star" -> distance = xDistance + yDistance + zDistance;
             case "chebyshev", "cube" -> distance = Math.max(Math.max(xDistance, yDistance), zDistance);
             default -> { // unrecognized
