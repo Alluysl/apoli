@@ -274,6 +274,19 @@ public class EntityActions {
                     server.getCommandManager().execute(source, data.getString("command"));
                 }
             }));
+        register(new ActionFactory<>(Apoli.identifier("log"), new SerializableData()
+            .add("message", SerializableDataTypes.STRING)
+            .add("show_variables", SerializableDataTypes.BOOLEAN, false)
+            .add("warning", SerializableDataTypes.BOOLEAN, false),
+            (data, entity) -> {
+                String message = data.getString("message");
+                if (data.getBoolean("show_variables"))
+                    message += entity;
+                if (data.getBoolean("warning"))
+                    Apoli.LOGGER.warn(message);
+                else
+                    Apoli.LOGGER.info(message);
+            }));
         register(new ActionFactory<>(Apoli.identifier("change_resource"), new SerializableData()
             .add("resource", ApoliDataTypes.POWER_TYPE)
             .add("change", SerializableDataTypes.INT),

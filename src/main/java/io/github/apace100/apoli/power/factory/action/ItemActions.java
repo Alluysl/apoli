@@ -16,6 +16,20 @@ public class ItemActions {
             (data, stack) -> {
                 stack.decrement(data.getInt("amount"));
             }));
+
+        register(new ActionFactory<>(Apoli.identifier("log"), new SerializableData()
+            .add("message", SerializableDataTypes.STRING)
+            .add("show_variables", SerializableDataTypes.BOOLEAN, false)
+            .add("warning", SerializableDataTypes.BOOLEAN, false),
+            (data, stack) -> {
+                String message = data.getString("message");
+                if (data.getBoolean("show_variables"))
+                    message += stack;
+                if (data.getBoolean("warning"))
+                    Apoli.LOGGER.warn(message);
+                else
+                    Apoli.LOGGER.info(message);
+            }));
     }
 
     private static void register(ActionFactory<ItemStack> actionFactory) {

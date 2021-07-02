@@ -102,6 +102,19 @@ public class BlockActions {
                     server.getCommandManager().execute(source, data.getString("command"));
                 }
             }));
+        register(new ActionFactory<>(Apoli.identifier("log"), new SerializableData()
+            .add("message", SerializableDataTypes.STRING)
+            .add("show_variables", SerializableDataTypes.BOOLEAN, false)
+            .add("warning", SerializableDataTypes.BOOLEAN, false),
+            (data, block) -> {
+                String message = data.getString("message");
+                if (data.getBoolean("show_variables"))
+                    message += block.getLeft() + " " + block.getMiddle() + " " + block.getRight();
+                if (data.getBoolean("warning"))
+                    Apoli.LOGGER.warn(message);
+                else
+                    Apoli.LOGGER.info(message);
+            }));
     }
 
     private static void register(ActionFactory<Triple<World, BlockPos, Direction>> actionFactory) {
