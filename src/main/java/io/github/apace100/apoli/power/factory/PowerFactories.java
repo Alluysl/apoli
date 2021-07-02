@@ -376,21 +376,30 @@ public class PowerFactories {
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("prevent_item_use"),
             new SerializableData()
-                .add("item_condition", ApoliDataTypes.ITEM_CONDITION, null),
+                .add("item_condition", ApoliDataTypes.ITEM_CONDITION, null)
+                .add("message", SerializableDataTypes.STRING, "")
+                .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
+                .add("item_action", ApoliDataTypes.ITEM_ACTION, null),
             data ->
                 (type, player) ->
-                    new PreventItemUsePower(type, player, data.isPresent("item_condition") ? (ConditionFactory<ItemStack>.Instance)data.get("item_condition") : item -> true))
+                    new PreventItemUsePower(type, player,
+                            data.isPresent("item_condition") ? (ConditionFactory<ItemStack>.Instance)data.get("item_condition") : item -> true,
+                            data.getString("message"), (ActionFactory<Entity>.Instance)data.get("entity_action"), (ActionFactory<ItemStack>.Instance)data.get("item_action")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("prevent_sleep"),
             new SerializableData()
                 .add("block_condition", ApoliDataTypes.BLOCK_CONDITION, null)
+                .add("block_action", ApoliDataTypes.BLOCK_ACTION, null)
+                .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("message", SerializableDataTypes.STRING, "origins.cant_sleep")
                 .add("set_spawn_point", SerializableDataTypes.BOOLEAN, false),
             data ->
                 (type, player) ->
                     new PreventSleepPower(type, player,
                         data.isPresent("block_condition") ? (ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition") : cbp -> true,
-                        data.getString("message"), data.getBoolean("set_spawn_point")))
+                        data.getString("message"), data.getBoolean("set_spawn_point"),
+                        (ActionFactory<Entity>.Instance)data.get("entity_action"),
+                        (ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("block_action")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("restrict_armor"),
             new SerializableData()
@@ -858,10 +867,12 @@ public class PowerFactories {
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("prevent_block_use"),
             new SerializableData()
-                .add("block_condition", ApoliDataTypes.BLOCK_CONDITION, null),
+                .add("block_condition", ApoliDataTypes.BLOCK_CONDITION, null)
+                .add("message", SerializableDataTypes.STRING, ""),
             data ->
                 (type, player) -> new PreventBlockUsePower(type, player,
-                    (ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition")))
+                    (ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition"),
+                    data.getString("message")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("prevent_death"),
             new SerializableData()

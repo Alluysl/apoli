@@ -25,6 +25,7 @@ public class ItemStackMixin {
             ItemStack stackInHand = user.getStackInHand(hand);
             for(PreventItemUsePower piup : component.getPowers(PreventItemUsePower.class)) {
                 if(piup.doesPrevent(stackInHand)) {
+                    piup.executeActions(stackInHand);
                     info.setReturnValue(TypedActionResult.fail(stackInHand));
                     break;
                 }
