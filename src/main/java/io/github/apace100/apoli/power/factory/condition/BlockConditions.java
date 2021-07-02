@@ -50,15 +50,10 @@ public class BlockConditions {
                 .add("direction", SerializableDataTypes.STRING, "north"),
                 (data, block) -> {
                     WorldView worldView = block.getWorld();
-                    if (worldView instanceof World)
-                        ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(new Triple<>() {
-                            public World getLeft(){ return (World)worldView; }
-                            public BlockPos getMiddle(){ return block.getBlockPos(); }
-                            public Direction getRight(){
-                                Direction dir = Direction.byName(data.getString("direction").toUpperCase());
-                                return dir == null ? Direction.NORTH : dir;
-                            }
-                        });
+                    if (worldView instanceof World){
+                        Direction dir = Direction.byName(data.getString("direction").toUpperCase());
+                        ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(Triple.of((World)worldView, block.getBlockPos(), dir == null ? Direction.UP : dir));
+                    }
                     return ((ConditionFactory<CachedBlockPosition>.Instance)data.get("condition")).test(block);
                 }));
         register(new ConditionFactory<>(Apoli.identifier("offset"), new SerializableData()
