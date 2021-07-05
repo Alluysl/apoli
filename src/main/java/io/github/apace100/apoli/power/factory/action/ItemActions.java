@@ -21,6 +21,7 @@ public class ItemActions {
             .add("message", SerializableDataTypes.STRING)
             .add("show_variables", SerializableDataTypes.BOOLEAN, false)
             .add("warning", SerializableDataTypes.BOOLEAN, false),
+            // no client_only/server_only options due to workings of getHolder
             (data, stack) -> {
                 String message = data.getString("message");
                 if (data.getBoolean("show_variables"))

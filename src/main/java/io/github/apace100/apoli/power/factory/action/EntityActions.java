@@ -277,8 +277,12 @@ public class EntityActions {
         register(new ActionFactory<>(Apoli.identifier("log"), new SerializableData()
             .add("message", SerializableDataTypes.STRING)
             .add("show_variables", SerializableDataTypes.BOOLEAN, false)
-            .add("warning", SerializableDataTypes.BOOLEAN, false),
+            .add("warning", SerializableDataTypes.BOOLEAN, false)
+            .add("client_only", SerializableDataTypes.BOOLEAN, false)
+            .add("server_only", SerializableDataTypes.BOOLEAN, false),
             (data, entity) -> {
+                if (entity.world.isClient ? data.getBoolean("server_only") : data.getBoolean("client_only"))
+                    return; // if client and server-only, or server and client-only, abort
                 String message = data.getString("message");
                 if (data.getBoolean("show_variables"))
                     message += entity;
