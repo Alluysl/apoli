@@ -14,6 +14,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 
 /**
@@ -68,6 +70,9 @@ public class DistanceFromCoordinatesConditionRegistry {
                 .add("x_offset", SerializableDataTypes.DOUBLE, 0.0) // offset to the reference point
                 .add("y_offset", SerializableDataTypes.DOUBLE, 0.0) // idem
                 .add("z_offset", SerializableDataTypes.DOUBLE, 0.0) // idem
+                .add("x", SerializableDataTypes.DOUBLE, 0.0) // adds up (instead of replacing, for simplicity) to the prior for aliasing
+                .add("y", SerializableDataTypes.DOUBLE, 0.0) // idem
+                .add("z", SerializableDataTypes.DOUBLE, 0.0) // idem
                 .add("ignore_x", SerializableDataTypes.BOOLEAN, false) // ignore the axis in the distance calculation
                 .add("ignore_y", SerializableDataTypes.BOOLEAN, false) // idem
                 .add("ignore_z", SerializableDataTypes.BOOLEAN, false) // idem
@@ -76,7 +81,8 @@ public class DistanceFromCoordinatesConditionRegistry {
                 .add("scale_distance_to_dimension", SerializableDataTypes.BOOLEAN, false) // whether to scale the calculated distance to the current dimension
                 .add("comparison", ApoliDataTypes.COMPARISON)
                 .add("compare_to", SerializableDataTypes.DOUBLE)
-                .add("result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, null); // if set and the dimension is not the same as the reference's, the value to set the condition to
+                .add("result_on_wrong_dimension", SerializableDataTypes.BOOLEAN, null) // if set and the dimension is not the same as the reference's, the value to set the condition to
+                .add("round_to_digit", SerializableDataTypes.INT, null); // if set, rounds the distance to this amount of digits (e.g. 0 for unitary values, 1 for decimals, -1 for multiples of ten)
     }
 
     public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block){
@@ -147,9 +153,9 @@ public class DistanceFromCoordinatesConditionRegistry {
             case "world_origin":
                 break;
         }
-        x += data.getDouble("x_offset");
-        y += data.getDouble("y_offset");
-        z += data.getDouble("z_offset");
+        x += data.getDouble("x") + data.getDouble("x_offset");
+        y += data.getDouble("y") + data.getDouble("y_offset");
+        z += data.getDouble("z") + data.getDouble("z_offset");
         if (scaleReferenceToDimension && (x != 0 || z != 0)){
             if (currentDimensionCoordinateScale == 0) // pocket dimensions?
                 return compareOutOfBounds((Comparison)data.get("comparison")); // coordinate scale 0 means it takes 0 blocks to travel in the OW to travel 1 block in the dimension, so the dimension is folded on 0 0, so unless the OW reference is at 0 0, it gets scaled to infinity
@@ -174,6 +180,9 @@ public class DistanceFromCoordinatesConditionRegistry {
                 return warnCouldNotGetObject("recognized shape name", "data", compareOutOfBounds((Comparison)data.get("comparison")), "condition (got '" + data.getString("shape") + "')");
             }
         }
+
+        if (data.isPresent("round_to_digit"))
+            distance = new BigDecimal(distance).setScale(data.getInt("round_to_digit"), RoundingMode.HALF_UP).doubleValue();
 
         return ((Comparison)data.get("comparison")).compare(distance, data.getDouble("compare_to"));
     }
