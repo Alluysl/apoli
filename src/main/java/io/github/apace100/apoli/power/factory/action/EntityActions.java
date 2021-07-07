@@ -3,6 +3,7 @@ package io.github.apace100.apoli.power.factory.action;
 import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.component.PowerHolderComponent;
 import io.github.apace100.apoli.data.ApoliDataTypes;
+import io.github.apace100.apoli.mixin.EntityAccessor;
 import io.github.apace100.apoli.power.CooldownPower;
 import io.github.apace100.apoli.power.Power;
 import io.github.apace100.apoli.power.PowerType;
@@ -16,6 +17,7 @@ import io.github.apace100.calio.FilterableWeightedList;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataType;
 import io.github.apace100.calio.data.SerializableDataTypes;
+import net.minecraft.enchantment.ProtectionEnchantment;
 import net.minecraft.entity.*;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.effect.StatusEffect;
@@ -33,14 +35,12 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.util.TriConsumer;
 
-import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -170,9 +170,17 @@ public class EntityActions {
                 }
             }));
         register(new ActionFactory<>(Apoli.identifier("set_on_fire"), new SerializableData()
-            .add("duration", SerializableDataTypes.INT),
+            .add("duration", SerializableDataTypes.INT, null) // kept for backward compatibility
+            .add("ticks", SerializableDataTypes.INT, null),
             (data, entity) -> {
-                entity.setOnFireFor(data.getInt("duration"));
+                if (data.isPresent("ticks")){
+                    int fireTicks = data.getInt("ticks");
+                    if (entity instanceof LivingEntity)
+                        fireTicks = ProtectionEnchantment.transformFireDuration((LivingEntity)entity, fireTicks);
+                    if (entity.getFireTicks() < fireTicks)
+                        ((EntityAccessor)entity).callSetFireTicks(fireTicks);
+                } else if (data.isPresent("duration"))
+                    entity.setOnFireFor(data.getInt("duration"));
             }));
         register(new ActionFactory<>(Apoli.identifier("add_velocity"), new SerializableData()
             .add("x", SerializableDataTypes.FLOAT, 0F)
