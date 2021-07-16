@@ -28,13 +28,14 @@ public class ActionOverTimePower extends Power {
     public void tick() {
         if(entity.age % interval == 0) {
             if (isActive()) {
-                if (entityAction != null) {
-                    entityAction.accept(entity);
-                }
                 if (!wasActive && risingAction != null) {
                     risingAction.accept(entity);
                 }
                 wasActive = true;
+
+                if (entityAction != null) {
+                    entityAction.accept(entity);
+                }
             } else {
                 if (wasActive && fallingAction != null) {
                     fallingAction.accept(entity);
