@@ -31,6 +31,9 @@ public class ActionOverTimePower extends Power {
                 if (!wasActive && risingAction != null) {
                     risingAction.accept(entity);
                 }
+                if (entityAction != null) {
+                    entityAction.accept(entity);
+                }
                 wasActive = true;
 
                 if (entityAction != null) {
