@@ -41,6 +41,10 @@ public class ItemConditions {
                     ((ActionFactory<ItemStack>.Instance)data.get("action")).accept(stack);
                     return ((ConditionFactory<ItemStack>.Instance)data.get("condition")).test(stack);
                 }));
+        register(new ConditionFactory<>(Apoli.identifier("count"), new SerializableData()
+                .add("comparison", ApoliDataTypes.COMPARISON)
+                .add("compare_to", SerializableDataTypes.INT),
+                (data, stack) -> ((Comparison)data.get("comparison")).compare(stack.getCount(), data.getInt("compare_to"))));
         register(new ConditionFactory<>(Apoli.identifier("food"), new SerializableData(),
             (data, stack) -> stack.isFood()));
         register(new ConditionFactory<>(Apoli.identifier("ingredient"), new SerializableData()
