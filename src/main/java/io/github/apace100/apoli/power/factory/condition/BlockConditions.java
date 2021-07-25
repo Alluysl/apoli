@@ -169,6 +169,7 @@ public class BlockConditions {
                 }
                 return false;
             }));
+        register(new ConditionFactory<>(Apoli.identifier("on_client"), new SerializableData(), (data, block) -> block.getWorld().isClient()));
     }
 
     private static void register(ConditionFactory<CachedBlockPosition> conditionFactory) {
