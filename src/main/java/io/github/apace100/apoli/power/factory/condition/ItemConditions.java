@@ -13,6 +13,7 @@ import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ToolItem;
 import net.minecraft.recipe.Ingredient;
+import net.minecraft.util.Rarity;
 import net.minecraft.util.registry.Registry;
 
 import java.util.List;
@@ -47,6 +48,24 @@ public class ItemConditions {
                 (data, stack) -> ((Comparison)data.get("comparison")).compare(stack.getCount(), data.getInt("compare_to"))));
         register(new ConditionFactory<>(Apoli.identifier("food"), new SerializableData(),
             (data, stack) -> stack.isFood()));
+        register(new ConditionFactory<>(Apoli.identifier("damage"), new SerializableData()
+                .add("comparison", ApoliDataTypes.COMPARISON)
+                .add("compare_to", SerializableDataTypes.DOUBLE)
+                .add("relative", SerializableDataTypes.BOOLEAN, true),
+                (data, stack) -> ((Comparison)data.get("comparison")).compare(stack.getMaxDamage() == 0 ? 0.0 : stack.getDamage() / (data.getBoolean("relative") ? (double)stack.getMaxDamage() : 1.0), data.getDouble("compare_to"))));
+        register(new ConditionFactory<>(Apoli.identifier("durability"), new SerializableData()
+                .add("comparison", ApoliDataTypes.COMPARISON)
+                .add("compare_to", SerializableDataTypes.INT)
+                .add("remaining", SerializableDataTypes.BOOLEAN, false),
+                (data, stack) -> ((Comparison)data.get("comparison")).compare(stack.getMaxDamage() - (data.getBoolean("remaining") ? stack.getDamage() : 0), data.getInt("compare_to"))));
+        register(new ConditionFactory<>(Apoli.identifier("enchantability"), new SerializableData()
+                .add("comparison", ApoliDataTypes.COMPARISON)
+                .add("compare_to", SerializableDataTypes.INT),
+                (data, stack) -> ((Comparison)data.get("comparison")).compare(stack.getItem().getEnchantability(), data.getInt("compare_to"))));
+        register(new ConditionFactory<>(Apoli.identifier("rarity"), new SerializableData()
+                .add("comparison", ApoliDataTypes.COMPARISON)
+                .add("compare_to", SerializableDataTypes.STRING),
+                (data, stack) -> ((Comparison)data.get("comparison")).compare(stack.getRarity().ordinal(), Rarity.valueOf(data.getString("compare_to").toUpperCase()).ordinal())));
         register(new ConditionFactory<>(Apoli.identifier("ingredient"), new SerializableData()
             .add("ingredient", SerializableDataTypes.INGREDIENT),
             (data, stack) -> ((Ingredient)data.get("ingredient")).test(stack)));
