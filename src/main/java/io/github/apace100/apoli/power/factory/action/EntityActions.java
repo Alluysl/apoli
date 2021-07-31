@@ -359,7 +359,7 @@ public class EntityActions {
                 }
             }));
         register(new ActionFactory<>(Apoli.identifier("equipped_item_action"), new SerializableData()
-            .add("equipment_slot", SerializableDataTypes.EQUIPMENT_SLOT)
+            .add("equipment_slot", SerializableDataTypes.EQUIPMENT_SLOT, EquipmentSlot.MAINHAND)
             .add("action", ApoliDataTypes.ITEM_ACTION),
             (data, entity) -> {
                 if(entity instanceof LivingEntity) {

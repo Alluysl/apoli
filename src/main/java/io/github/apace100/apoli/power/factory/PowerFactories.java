@@ -83,7 +83,7 @@ public class PowerFactories {
         register(new PowerFactory<>(Apoli.identifier("cooldown"),
             new SerializableData()
                 .add("cooldown", SerializableDataTypes.INT)
-                .add("hud_render", ApoliDataTypes.HUD_RENDER),
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) ->
                     new CooldownPower(type, player, data.getInt("cooldown"), (HudRender)data.get("hud_render")))
@@ -106,7 +106,7 @@ public class PowerFactories {
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("elytra_flight"),
             new SerializableData()
-                .add("render_elytra", SerializableDataTypes.BOOLEAN),
+                .add("render_elytra", SerializableDataTypes.BOOLEAN, true),
             data ->
                 (type, player) -> new ElytraFlightPower(type, player, data.getBoolean("render_elytra")))
             .allowCondition());
@@ -124,7 +124,7 @@ public class PowerFactories {
                 .add("divergence", SerializableDataTypes.FLOAT, 1F)
                 .add("sound", SerializableDataTypes.SOUND_EVENT, null)
                 .add("entity_type", SerializableDataTypes.ENTITY_TYPE)
-                .add("hud_render", ApoliDataTypes.HUD_RENDER)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("tag", SerializableDataTypes.NBT, null)
                 .add("key", ApoliDataTypes.BACKWARDS_COMPATIBLE_KEY, new Active.Key()),
             data ->
@@ -160,15 +160,17 @@ public class PowerFactories {
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("invisibility"),
             new SerializableData()
-                .add("render_armor", SerializableDataTypes.BOOLEAN),
+                .add("render_armor", SerializableDataTypes.BOOLEAN, false),
             data ->
                 (type, player) -> new InvisibilityPower(type, player, data.getBoolean("render_armor")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("invulnerability"),
             new SerializableData()
-                .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION),
+                .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null),
             data ->
                 (type, player) -> {
+                    if (!data.isPresent("damage_condition"))
+                        return new InvulnerablePower(type, player, ds -> true);
                     ConditionFactory<Pair<DamageSource, Float>>.Instance damageCondition =
                         (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition");
                     return new InvulnerablePower(type, player, ds -> damageCondition.test(new Pair<>(ds, null)));
@@ -179,7 +181,7 @@ public class PowerFactories {
                 .add("cooldown", SerializableDataTypes.INT)
                 .add("speed", SerializableDataTypes.FLOAT)
                 .add("sound", SerializableDataTypes.SOUND_EVENT, null)
-                .add("hud_render", ApoliDataTypes.HUD_RENDER)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("key", ApoliDataTypes.BACKWARDS_COMPATIBLE_KEY, new Active.Key()),
             data -> {
                 SoundEvent soundEvent = (SoundEvent)data.get("sound");
@@ -304,7 +306,7 @@ public class PowerFactories {
         register(new PowerFactory<>(Apoli.identifier("modify_harvest"),
             new SerializableData()
                 .add("block_condition", ApoliDataTypes.BLOCK_CONDITION, null)
-                .add("allow", SerializableDataTypes.BOOLEAN),
+                .add("allow", SerializableDataTypes.BOOLEAN, true),
             data ->
                 (type, player) ->
                     new ModifyHarvestPower(type, player,
@@ -454,7 +456,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("min_stacks", SerializableDataTypes.INT)
                 .add("max_stacks", SerializableDataTypes.INT)
-                .add("duration_per_stack", SerializableDataTypes.INT)
+                .add("duration_per_stack", SerializableDataTypes.INT, 20)
                 .add("effect", SerializableDataTypes.STATUS_EFFECT_INSTANCE, null)
                 .add("effects", SerializableDataTypes.STATUS_EFFECT_INSTANCES, null),
             data ->
@@ -556,7 +558,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("cooldown", SerializableDataTypes.INT)
-                .add("hud_render", ApoliDataTypes.HUD_RENDER)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("key", ApoliDataTypes.BACKWARDS_COMPATIBLE_KEY, new Active.Key()),
             data ->
                 (type, player) -> {
@@ -580,7 +582,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT)
+                .add("cooldown", SerializableDataTypes.INT, 1)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new SelfActionWhenHitPower(type, player, data.getInt("cooldown"),
@@ -591,7 +593,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT)
+                .add("cooldown", SerializableDataTypes.INT, 1)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new AttackerActionWhenHitPower(type, player, data.getInt("cooldown"),
@@ -602,7 +604,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT)
+                .add("cooldown", SerializableDataTypes.INT, 1)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null),
             data ->
@@ -615,7 +617,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT)
+                .add("cooldown", SerializableDataTypes.INT, 1)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null),
             data ->
@@ -692,7 +694,7 @@ public class PowerFactories {
                 .add("min", SerializableDataTypes.INT)
                 .add("max", SerializableDataTypes.INT)
                 .addFunctionedDefault("start_value", SerializableDataTypes.INT, data -> data.getInt("min"))
-                .add("hud_render", ApoliDataTypes.HUD_RENDER)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("min_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("max_action", ApoliDataTypes.ENTITY_ACTION, null),
             data ->
@@ -803,7 +805,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT)
+                .add("cooldown", SerializableDataTypes.INT, 1)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null),
             data ->
@@ -922,7 +924,7 @@ public class PowerFactories {
         register(new PowerFactory<>(Apoli.identifier("burn"),
             new SerializableData()
                 .add("interval", SerializableDataTypes.INT)
-                .add("burn_duration", SerializableDataTypes.INT),
+                .addFunctionedDefault("burn_duration", SerializableDataTypes.INT, data -> data.getInt("interval")),
             data ->
                 (type, player) ->
                     new BurnPower(type, player, data.getInt("interval"), data.getInt("burn_duration")))

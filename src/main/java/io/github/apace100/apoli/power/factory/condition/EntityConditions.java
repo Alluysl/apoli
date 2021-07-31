@@ -79,9 +79,9 @@ public class EntityConditions {
                 return ((ConditionFactory<LivingEntity>.Instance)data.get("condition")).test(entity);
             }));
         register(new ConditionFactory<>(Apoli.identifier("block_collision"), new SerializableData()
-            .add("offset_x", SerializableDataTypes.FLOAT)
-            .add("offset_y", SerializableDataTypes.FLOAT)
-            .add("offset_z", SerializableDataTypes.FLOAT),
+            .add("offset_x", SerializableDataTypes.FLOAT, 0.0f)
+            .add("offset_y", SerializableDataTypes.FLOAT, 0.0f)
+            .add("offset_z", SerializableDataTypes.FLOAT, 0.0f),
             (data, entity) -> entity.world.getBlockCollisions(entity,
                 entity.getBoundingBox().offset(
                     data.getFloat("offset_x") * entity.getBoundingBox().getXLength(),
@@ -177,7 +177,7 @@ public class EntityConditions {
                 (!data.isPresent("block_condition") || ((ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition")).test(
                     new CachedBlockPosition(entity.world, entity.getBlockPos().down(), true)))));
         register(new ConditionFactory<>(Apoli.identifier("equipped_item"), new SerializableData()
-            .add("equipment_slot", SerializableDataTypes.EQUIPMENT_SLOT)
+            .add("equipment_slot", SerializableDataTypes.EQUIPMENT_SLOT, EquipmentSlot.MAINHAND)
             .add("item_condition", ApoliDataTypes.ITEM_CONDITION),
             (data, entity) -> ((ConditionFactory<ItemStack>.Instance)data.get("item_condition")).test(
                 entity.getEquippedStack((EquipmentSlot)data.get("equipment_slot")))));
