@@ -189,7 +189,7 @@ public class EntityActions {
             .add("space", ApoliDataTypes.SPACE, Space.WORLD)
             .add("set", SerializableDataTypes.BOOLEAN, false),
             (data, entity) -> {
-                if (!entity.world.isClient)
+                if (entity instanceof PlayerEntity && !(entity.world.isClient))
                     return; // velocity calculations are client-side, don't do anything on the server
                 Space space = (Space)data.get("space");
                 Vec3f vec = new Vec3f(data.getFloat("x"), data.getFloat("y"), data.getFloat("z"));
