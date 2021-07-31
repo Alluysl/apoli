@@ -35,6 +35,7 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
@@ -173,14 +174,19 @@ public class EntityActions {
             .add("duration", SerializableDataTypes.INT, null) // kept for backward compatibility
             .add("ticks", SerializableDataTypes.INT, null),
             (data, entity) -> {
-                if (data.isPresent("ticks")){
-                    int fireTicks = data.getInt("ticks");
+                if (data.isPresent("ticks") || data.isPresent("duration")){
+                    int fireTicks;
+
+                    if (data.isPresent("ticks"))
+                        fireTicks = data.getInt("ticks");
+                    else
+                        fireTicks = data.getInt("duration") * 20;
+
                     if (entity instanceof LivingEntity)
                         fireTicks = ProtectionEnchantment.transformFireDuration((LivingEntity)entity, fireTicks);
                     if (entity.getFireTicks() < fireTicks)
                         ((EntityAccessor)entity).callSetFireTicks(fireTicks);
-                } else if (data.isPresent("duration"))
-                    entity.setOnFireFor(data.getInt("duration"));
+                }
             }));
         register(new ActionFactory<>(Apoli.identifier("add_velocity"), new SerializableData()
             .add("x", SerializableDataTypes.FLOAT, 0F)
@@ -229,10 +235,13 @@ public class EntityActions {
                 }
             }));
         register(new ActionFactory<>(Apoli.identifier("block_action_at"), new SerializableData()
-            .add("block_action", ApoliDataTypes.BLOCK_ACTION),
+            .add("block_action", ApoliDataTypes.BLOCK_ACTION)
+            .add("direction", SerializableDataTypes.STRING, null),
             (data, entity) -> {
+                    Vec3d v = entity.getRotationVector();
                     ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("block_action")).accept(
-                        Triple.of(entity.world, entity.getBlockPos(), Direction.UP));
+                        Triple.of(entity.world, entity.getBlockPos(), data.isPresent("direction") ?
+                            Direction.byName(data.getString("direction").toUpperCase()) : Direction.getFacing(v.x, v.y, v.z)));
             }));
         register(new ActionFactory<>(Apoli.identifier("spawn_effect_cloud"), new SerializableData()
             .add("radius", SerializableDataTypes.FLOAT, 3.0F)

@@ -4,6 +4,7 @@ import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.data.ApoliDataTypes;
 import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
+import io.github.apace100.apoli.util.BlockInRadiusConditionRegistry;
 import io.github.apace100.apoli.util.Comparison;
 import io.github.apace100.apoli.util.DistanceFromCoordinatesConditionRegistry;
 import io.github.apace100.calio.data.SerializableData;
@@ -47,7 +48,7 @@ public class BlockConditions {
         register(new ConditionFactory<>(Apoli.identifier("after"), new SerializableData()
                 .add("action", ApoliDataTypes.BLOCK_ACTION)
                 .add("condition", ApoliDataTypes.BLOCK_CONDITION)
-                .add("direction", SerializableDataTypes.STRING, "north"),
+                .add("direction", SerializableDataTypes.STRING, "up"),
                 (data, block) -> {
                     WorldView worldView = block.getWorld();
                     if (worldView instanceof World){
@@ -103,7 +104,12 @@ public class BlockConditions {
                 }
                 return ((Comparison)data.get("comparison")).compare(adjacent, data.getInt("compare_to"));
             }));
+        register(new ConditionFactory<>(Apoli.identifier("block_in_radius"),
+            BlockInRadiusConditionRegistry.getSerializableData(),
+            BlockInRadiusConditionRegistry::testCondition));
         register(new ConditionFactory<>(Apoli.identifier("replacable"), new SerializableData(),
+            (data, block) -> block.getBlockState().getMaterial().isReplaceable())); // kept for backward compatibility
+        register(new ConditionFactory<>(Apoli.identifier("replaceable"), new SerializableData(),
             (data, block) -> block.getBlockState().getMaterial().isReplaceable()));
         register(new ConditionFactory<>(Apoli.identifier("attachable"), new SerializableData(),
             (data, block) -> {

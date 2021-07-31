@@ -589,6 +589,17 @@ public class PowerFactories {
                     (HudRender)data.get("hud_render"), (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
                     (ActionFactory<Entity>.Instance)data.get("entity_action")))
             .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("self_action_when_killed"),
+            new SerializableData()
+                .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
+                .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
+                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
+            data ->
+                (type, player) -> new SelfActionWhenKilledPower(type, player, data.getInt("cooldown"),
+                    (HudRender)data.get("hud_render"), (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
+                    (ActionFactory<Entity>.Instance)data.get("entity_action")))
+            .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("attacker_action_when_hit"),
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
@@ -597,6 +608,17 @@ public class PowerFactories {
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new AttackerActionWhenHitPower(type, player, data.getInt("cooldown"),
+                    (HudRender)data.get("hud_render"), (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
+                    (ActionFactory<Entity>.Instance)data.get("entity_action")))
+            .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("attacker_action_when_killed"),
+            new SerializableData()
+                .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
+                .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
+                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
+            data ->
+                (type, player) -> new AttackerActionWhenKilledPower(type, player, data.getInt("cooldown"),
                     (HudRender)data.get("hud_render"), (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
                     (ActionFactory<Entity>.Instance)data.get("entity_action")))
             .allowCondition());
@@ -879,11 +901,18 @@ public class PowerFactories {
         register(new PowerFactory<>(Apoli.identifier("prevent_death"),
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
-                .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null),
+                .add("attacker_action", ApoliDataTypes.ENTITY_ACTION, null)
+                .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
+                .add("cooldown", SerializableDataTypes.INT, null)
+                .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new PreventDeathPower(type, player,
+                    data.isPresent("cooldown") ? data.getInt("cooldown") : 1,
+                    (HudRender)data.get("hud_render"),
                     (ActionFactory<Entity>.Instance)data.get("entity_action"),
-                    (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition")))
+                    (ActionFactory<Entity>.Instance)data.get("attacker_action"),
+                    (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
+                    data.isPresent("cooldown")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("action_on_item_use"),
             new SerializableData()
@@ -924,10 +953,12 @@ public class PowerFactories {
         register(new PowerFactory<>(Apoli.identifier("burn"),
             new SerializableData()
                 .add("interval", SerializableDataTypes.INT)
-                .addFunctionedDefault("burn_duration", SerializableDataTypes.INT, data -> data.getInt("interval")),
+                .add("burn_duration", SerializableDataTypes.INT, null) // kept for backward compatibility
+                .addFunctionedDefault("burn_ticks", SerializableDataTypes.INT, data -> data.getInt("interval")),
             data ->
                 (type, player) ->
-                    new BurnPower(type, player, data.getInt("interval"), data.getInt("burn_duration")))
+                    new BurnPower(type, player, data.getInt("interval"),
+                        data.isPresent("burn_duration") ? data.getInt("burn_duration") * 20 : data.getInt("burn_ticks")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("exhaust"),
             new SerializableData()

@@ -9,6 +9,7 @@ import io.github.apace100.apoli.mixin.EntityAccessor;
 import io.github.apace100.apoli.power.*;
 import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
+import io.github.apace100.apoli.util.BlockInRadiusConditionRegistry;
 import io.github.apace100.apoli.util.Comparison;
 import io.github.apace100.apoli.util.DistanceFromCoordinatesConditionRegistry;
 import io.github.apace100.apoli.util.Shape;
@@ -81,12 +82,13 @@ public class EntityConditions {
         register(new ConditionFactory<>(Apoli.identifier("block_collision"), new SerializableData()
             .add("offset_x", SerializableDataTypes.FLOAT, 0.0f)
             .add("offset_y", SerializableDataTypes.FLOAT, 0.0f)
-            .add("offset_z", SerializableDataTypes.FLOAT, 0.0f),
+            .add("offset_z", SerializableDataTypes.FLOAT, 0.0f)
+            .add("absolute", SerializableDataTypes.BOOLEAN, false),
             (data, entity) -> entity.world.getBlockCollisions(entity,
                 entity.getBoundingBox().offset(
-                    data.getFloat("offset_x") * entity.getBoundingBox().getXLength(),
-                    data.getFloat("offset_y") * entity.getBoundingBox().getYLength(),
-                    data.getFloat("offset_z") * entity.getBoundingBox().getZLength())
+                    data.getFloat("offset_x") * (data.getBoolean("absolute") ? 1 : entity.getBoundingBox().getXLength()),
+                    data.getFloat("offset_y") * (data.getBoolean("absolute") ? 1 : entity.getBoundingBox().getYLength()),
+                    data.getFloat("offset_z") * (data.getBoolean("absolute") ? 1 : entity.getBoundingBox().getZLength()))
             ).findAny().isPresent()));
         register(new ConditionFactory<>(Apoli.identifier("brightness"), new SerializableData()
             .add("comparison", ApoliDataTypes.COMPARISON)
@@ -221,36 +223,9 @@ public class EntityConditions {
             .add("block_condition", ApoliDataTypes.BLOCK_CONDITION),
             (data, entity) ->((ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition")).test(
                 new CachedBlockPosition(entity.world, entity.getBlockPos(), true))));
-        register(new ConditionFactory<>(Apoli.identifier("block_in_radius"), new SerializableData()
-            .add("block_condition", ApoliDataTypes.BLOCK_CONDITION)
-            .add("radius", SerializableDataTypes.INT)
-            .add("shape", SerializableDataType.enumValue(Shape.class), Shape.CUBE)
-            .add("compare_to", SerializableDataTypes.INT, 1)
-            .add("comparison", ApoliDataTypes.COMPARISON, Comparison.GREATER_THAN_OR_EQUAL),
-            (data, entity) -> {
-                Predicate<CachedBlockPosition> blockCondition = ((ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition"));
-                int stopAt = -1;
-                Comparison comparison = ((Comparison)data.get("comparison"));
-                int compareTo = data.getInt("compare_to");
-                switch(comparison) {
-                    case EQUAL: case LESS_THAN_OR_EQUAL: case GREATER_THAN:
-                        stopAt = compareTo + 1;
-                        break;
-                    case LESS_THAN: case GREATER_THAN_OR_EQUAL:
-                        stopAt = compareTo;
-                        break;
-                }
-                int count = 0;
-                for(BlockPos pos : Shape.getPositions(entity.getBlockPos(), (Shape) data.get("shape"), data.getInt("radius"))) {
-                    if(blockCondition.test(new CachedBlockPosition(entity.world, pos, true))) {
-                        count++;
-                        if(count == stopAt) {
-                            break;
-                        }
-                    }
-                }
-                return comparison.compare(count, compareTo);
-            }));
+        register(new ConditionFactory<>(Apoli.identifier("block_in_radius"),
+            BlockInRadiusConditionRegistry.getSerializableData(),
+            BlockInRadiusConditionRegistry::testCondition)); // put in one place because can be used on blocks or entities
         for (String alias : DistanceFromCoordinatesConditionRegistry.getAliases())
             register(new ConditionFactory<>(Apoli.identifier(alias),
                     DistanceFromCoordinatesConditionRegistry.getSerializableData(alias),

@@ -17,6 +17,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -53,7 +54,10 @@ public class ServerPlayerInteractionManagerMixin {
     @Inject(method = "tryBreakBlock", at = @At(value = "RETURN", ordinal = 4), locals = LocalCapture.CAPTURE_FAILHARD)
     private void actionOnBlockBreak(BlockPos pos, CallbackInfoReturnable<Boolean> cir, BlockState blockState, BlockEntity blockEntity, Block block, boolean bl, ItemStack itemStack, ItemStack itemStack2, boolean bl2) {
         PowerHolderComponent.getPowers(player, ActionOnBlockBreakPower.class).stream().filter(p -> p.doesApply(savedBlockPosition))
-            .forEach(aobbp -> aobbp.executeActions(bl && bl2, pos, player.getPitch() >= 45.0f ? Direction.DOWN : player.getPitch() <= -45.0f ? Direction.UP : player.getHorizontalFacing()));
+            .forEach(aobbp -> {
+                Vec3d v = player.getRotationVector();
+                aobbp.executeActions(bl && bl2, pos, Direction.getFacing(v.x, v.y, v.z));
+            });
     }
 
 

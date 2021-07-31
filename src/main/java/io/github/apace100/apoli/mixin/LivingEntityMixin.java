@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
@@ -195,8 +196,21 @@ public abstract class LivingEntityMixin extends Entity {
         Optional<PreventDeathPower> preventDeathPower = PowerHolderComponent.getPowers(this, PreventDeathPower.class).stream().filter(p -> p.doesApply(source, cachedDamageAmount)).findFirst();
         if(preventDeathPower.isPresent()) {
             this.setHealth(1.0F);
-            preventDeathPower.get().executeAction();
+            preventDeathPower.get().executeActions(source.getAttacker());
             cir.setReturnValue(true);
+        }
+    }
+
+    @Shadow
+    protected boolean dead;
+
+    @Inject(method = "damage", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;onDeath(Lnet/minecraft/entity/damage/DamageSource;)V"))
+    private void doDeathActions(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir){
+        if (!isRemoved() && !dead){
+            for (SelfActionWhenKilledPower sawkp : PowerHolderComponent.getPowers(this, SelfActionWhenKilledPower.class))
+                sawkp.whenKilled(source, amount);
+            for (AttackerActionWhenKilledPower aawkp : PowerHolderComponent.getPowers(this, AttackerActionWhenKilledPower.class))
+                aawkp.whenKilled(source, amount);
         }
     }
 }

@@ -71,6 +71,51 @@ public class BlockActions {
                 block.getMiddle().add(data.getInt("x"), data.getInt("y"), data.getInt("z")),
                 block.getRight())
             )));
+        register(new ActionFactory<>(Apoli.identifier("direction"), new SerializableData()
+            .add("action", ApoliDataTypes.BLOCK_ACTION)
+            .add("direction", SerializableDataTypes.STRING),
+            (data, block) -> ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(Triple.of(
+                block.getLeft(),
+                block.getMiddle(),
+                Direction.byName(data.getString("direction").toUpperCase()))
+            )));
+        register(new ActionFactory<>(Apoli.identifier("opposite_direction"), new SerializableData()
+            .add("action", ApoliDataTypes.BLOCK_ACTION),
+            (data, block) -> ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(Triple.of(
+                block.getLeft(),
+                block.getMiddle(),
+                block.getRight().getOpposite())
+            )));
+        register(new ActionFactory<>(Apoli.identifier("direction_rotated_clockwise"), new SerializableData()
+            .add("action", ApoliDataTypes.BLOCK_ACTION)
+            .add("axis", SerializableDataTypes.STRING),
+            (data, block) -> {
+                Direction.Axis axis = Direction.Axis.fromName(data.getString("axis"));
+                ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(Triple.of(
+                    block.getLeft(),
+                    block.getMiddle(),
+                    axis == null ? block.getRight() : block.getRight().rotateClockwise(axis))
+                );
+            }));
+        register(new ActionFactory<>(Apoli.identifier("direction_rotated_counterclockwise"), new SerializableData()
+            .add("action", ApoliDataTypes.BLOCK_ACTION)
+            .add("axis", SerializableDataTypes.STRING),
+            (data, block) -> {
+                Direction.Axis axis = Direction.Axis.fromName(data.getString("axis"));
+                ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(Triple.of(
+                    block.getLeft(),
+                    block.getMiddle(),
+                    axis == null ? block.getRight() : block.getRight().rotateCounterclockwise(axis))
+                );
+            }));
+        register(new ActionFactory<>(Apoli.identifier("direction_randomized"), new SerializableData()
+            .add("action", ApoliDataTypes.BLOCK_ACTION)
+            .add("axis", SerializableDataTypes.STRING),
+            (data, block) -> ((ActionFactory<Triple<World, BlockPos, Direction>>.Instance)data.get("action")).accept(Triple.of(
+                    block.getLeft(),
+                    block.getMiddle(),
+                    Direction.random(new Random()))
+            )));
 
         register(new ActionFactory<>(Apoli.identifier("set_block"), new SerializableData()
             .add("block", SerializableDataTypes.BLOCK),
