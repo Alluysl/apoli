@@ -330,6 +330,22 @@ public class PowerFactories {
                     return power;
                 })
             .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("modify_fly_speed"),
+            new SerializableData()
+                .add("modifier", SerializableDataTypes.ATTRIBUTE_MODIFIER, null)
+                .add("modifiers", SerializableDataTypes.ATTRIBUTE_MODIFIERS, null),
+            data ->
+                (type, player) -> {
+                    ModifyFlySpeedPower power = new ModifyFlySpeedPower(type, player);
+                    if(data.isPresent("modifier")) {
+                        power.addModifier(data.getModifier("modifier"));
+                    }
+                    if(data.isPresent("modifiers")) {
+                        ((List<EntityAttributeModifier>)data.get("modifiers")).forEach(power::addModifier);
+                    }
+                    return power;
+                })
+            .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("modify_player_spawn"),
                 new SerializableData()
                         .add("dimension", SerializableDataTypes.DIMENSION)

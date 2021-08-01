@@ -204,6 +204,8 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow
     protected boolean dead;
 
+    @Shadow public float flyingSpeed;
+
     @Inject(method = "damage", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;onDeath(Lnet/minecraft/entity/damage/DamageSource;)V"))
     private void doDeathActions(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir){
         if (!isRemoved() && !dead){
@@ -212,5 +214,11 @@ public abstract class LivingEntityMixin extends Entity {
             for (AttackerActionWhenKilledPower aawkp : PowerHolderComponent.getPowers(this, AttackerActionWhenKilledPower.class))
                 aawkp.whenKilled(source, amount);
         }
+    }
+
+    @Inject(method = "getMovementSpeed(F)F", at = @At("RETURN"), cancellable = true)
+    private void modifyFlySpeed(float slipperiness, CallbackInfoReturnable<Float> cir){
+        if (!onGround)
+            cir.setReturnValue(PowerHolderComponent.modify(this, ModifyFlySpeedPower.class, flyingSpeed));
     }
 }
