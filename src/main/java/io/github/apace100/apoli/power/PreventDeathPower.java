@@ -15,18 +15,16 @@ public class PreventDeathPower extends CooldownPower {
     private final Consumer<Entity> entityAction;
     private final Consumer<Entity> attackerAction;
     private final Predicate<Pair<DamageSource, Float>> condition;
-    private final boolean isCooldown;
 
-    public PreventDeathPower(PowerType<?> type, LivingEntity entity, int cooldownDuration, HudRender hudRender, Consumer<Entity> entityAction, Consumer<Entity> attackerAction, Predicate<Pair<DamageSource, Float>> condition, boolean isCooldown) {
+    public PreventDeathPower(PowerType<?> type, LivingEntity entity, int cooldownDuration, HudRender hudRender, Consumer<Entity> entityAction, Consumer<Entity> attackerAction, Predicate<Pair<DamageSource, Float>> condition) {
         super(type, entity, cooldownDuration, hudRender);
         this.entityAction = entityAction;
         this.attackerAction = attackerAction;
         this.condition = condition;
-        this.isCooldown = isCooldown;
     }
 
     public boolean doesApply(DamageSource source, float amount) {
-        return (!isCooldown || canUse()) && (condition == null || condition.test(new Pair<>(source, amount)));
+        return canUse() && (condition == null || condition.test(new Pair<>(source, amount)));
     }
 
     public void executeActions(Entity attacker) {
@@ -34,7 +32,6 @@ public class PreventDeathPower extends CooldownPower {
             entityAction.accept(entity);
         if (attackerAction != null && attacker != null && attacker != entity)
             attackerAction.accept(attacker);
-        if (isCooldown)
-            use();
+        use();
     }
 }

@@ -598,7 +598,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new SelfActionWhenHitPower(type, player, data.getInt("cooldown"),
@@ -609,7 +609,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new SelfActionWhenKilledPower(type, player, data.getInt("cooldown"),
@@ -620,7 +620,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new AttackerActionWhenHitPower(type, player, data.getInt("cooldown"),
@@ -631,7 +631,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new AttackerActionWhenKilledPower(type, player, data.getInt("cooldown"),
@@ -642,7 +642,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null),
             data ->
@@ -655,7 +655,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null),
             data ->
@@ -843,7 +843,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, 1)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER)
                 .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null),
             data ->
@@ -919,16 +919,15 @@ public class PowerFactories {
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("attacker_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
-                .add("cooldown", SerializableDataTypes.INT, null)
+                .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
                 (type, player) -> new PreventDeathPower(type, player,
-                    data.isPresent("cooldown") ? data.getInt("cooldown") : 1,
+                    data.getInt("cooldown"),
                     (HudRender)data.get("hud_render"),
                     (ActionFactory<Entity>.Instance)data.get("entity_action"),
                     (ActionFactory<Entity>.Instance)data.get("attacker_action"),
-                    (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
-                    data.isPresent("cooldown")))
+                    (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("action_on_item_use"),
             new SerializableData()

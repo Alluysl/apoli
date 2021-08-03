@@ -28,6 +28,7 @@ public class CooldownPower extends Power implements HudRendered {
         PowerHolderComponent.sync(entity);
     }
 
+    // cooldownDuration must be > 0
     public float getProgress() {
         float time = entity.getEntityWorld().getTime() - lastUseTime;
         return Math.min(1F, Math.max(time / (float)cooldownDuration, 0F));
@@ -65,6 +66,7 @@ public class CooldownPower extends Power implements HudRendered {
         return hudRender;
     }
 
+    // cooldownDuration must be > 0
     @Override
     public float getFill() {
         return getProgress();
@@ -72,6 +74,6 @@ public class CooldownPower extends Power implements HudRendered {
 
     @Override
     public boolean shouldRender() {
-        return (entity.getEntityWorld().getTime() - lastUseTime) <= cooldownDuration;
+        return cooldownDuration > 0 && (entity.getEntityWorld().getTime() - lastUseTime) <= cooldownDuration;
     }
 }
