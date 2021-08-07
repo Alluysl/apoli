@@ -159,13 +159,22 @@ public class EntityActions {
                 }
             }));
         register(new ActionFactory<>(Apoli.identifier("clear_effect"), new SerializableData()
-            .add("effect", SerializableDataTypes.STATUS_EFFECT, null),
+            .add("effect", SerializableDataTypes.STATUS_EFFECT, null)
+            .add("effects", SerializableDataTypes.STATUS_EFFECTS, null),
             (data, entity) -> {
-                if(entity instanceof LivingEntity) {
-                    LivingEntity le = (LivingEntity) entity;
+                if(entity instanceof LivingEntity le) {
+                    boolean noEffects = true;
                     if(data.isPresent("effect")) {
                         le.removeStatusEffect((StatusEffect)data.get("effect"));
-                    } else {
+                        noEffects = false;
+                    }
+                    if(data.isPresent("effects")) {
+                        List<StatusEffect> effects = (List<StatusEffect>)data.get("effects");
+                        effects.forEach(le::removeStatusEffect);
+                        if (noEffects && effects.size() > 0)
+                            noEffects = false;
+                    }
+                    if(noEffects){
                         le.clearStatusEffects();
                     }
                 }
