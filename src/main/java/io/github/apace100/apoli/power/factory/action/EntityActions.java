@@ -202,10 +202,14 @@ public class EntityActions {
             .add("y", SerializableDataTypes.FLOAT, 0F)
             .add("z", SerializableDataTypes.FLOAT, 0F)
             .add("space", ApoliDataTypes.SPACE, Space.WORLD)
-            .add("set", SerializableDataTypes.BOOLEAN, false),
+            .add("set", SerializableDataTypes.BOOLEAN, false)
+            .add("client_only", SerializableDataTypes.BOOLEAN, false) // preferred true but false by default for backward compatibility
+            .add("server_only", SerializableDataTypes.BOOLEAN, false), // preferred false though we might as well allow it to be specified
             (data, entity) -> {
-                if (entity instanceof PlayerEntity && !(entity.world.isClient))
-                    return; // velocity calculations are client-side, don't do anything on the server
+                if (entity instanceof PlayerEntity
+                    && (entity.world.isClient ?
+                        data.getBoolean("server_only") : data.getBoolean("client_only")))
+                    return;
                 Space space = (Space)data.get("space");
                 Vec3f vec = new Vec3f(data.getFloat("x"), data.getFloat("y"), data.getFloat("z"));
                 TriConsumer<Float, Float, Float> method = entity::addVelocity;
