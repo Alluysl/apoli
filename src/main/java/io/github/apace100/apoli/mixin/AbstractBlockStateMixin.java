@@ -41,7 +41,7 @@ public abstract class AbstractBlockStateMixin {
                 Entity entity = esc.getEntity().get();
                 boolean isAbove = isAbove(entity, blockShape, pos, false);
                 for (PhasingPower phasingPower : PowerHolderComponent.getPowers(entity, PhasingPower.class)) {
-                    if(!isAbove || phasingPower.shouldPhaseDown((PlayerEntity)entity)) {
+                    if(!isAbove || phasingPower.shouldPhaseDown(entity)) {
                         if(phasingPower.doesApply(pos)) {
                             info.setReturnValue(VoxelShapes.empty());
                         }

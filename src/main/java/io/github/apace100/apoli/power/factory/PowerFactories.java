@@ -390,7 +390,7 @@ public class PowerFactories {
                 (type, player) ->
                     new PhasingPower(type, player, data.isPresent("block_condition") ? (ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition") : cbp -> true,
                         data.getBoolean("blacklist"), (PhasingPower.RenderType)data.get("render_type"), data.getFloat("view_distance"),
-                        (ConditionFactory<PlayerEntity>.Instance)data.get("phase_down_condition")))
+                        (ConditionFactory<LivingEntity>.Instance)data.get("phase_down_condition")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("prevent_item_use"),
             new SerializableData()
