@@ -15,12 +15,14 @@ public class PreventDeathPower extends CooldownPower {
     private final Consumer<Entity> entityAction;
     private final Consumer<Entity> attackerAction;
     private final Predicate<Pair<DamageSource, Float>> condition;
+    private final boolean countSelfAsAttacker;
 
-    public PreventDeathPower(PowerType<?> type, LivingEntity entity, int cooldownDuration, HudRender hudRender, Consumer<Entity> entityAction, Consumer<Entity> attackerAction, Predicate<Pair<DamageSource, Float>> condition) {
+    public PreventDeathPower(PowerType<?> type, LivingEntity entity, int cooldownDuration, HudRender hudRender, Consumer<Entity> entityAction, Consumer<Entity> attackerAction, Predicate<Pair<DamageSource, Float>> condition, boolean countSelfAsAttacker) {
         super(type, entity, cooldownDuration, hudRender);
         this.entityAction = entityAction;
         this.attackerAction = attackerAction;
         this.condition = condition;
+        this.countSelfAsAttacker = countSelfAsAttacker;
     }
 
     public boolean doesApply(DamageSource source, float amount) {
@@ -30,7 +32,7 @@ public class PreventDeathPower extends CooldownPower {
     public void executeActions(Entity attacker) {
         if (entityAction != null)
             entityAction.accept(entity);
-        if (attackerAction != null && attacker != null && attacker != entity)
+        if (attackerAction != null && attacker != null && (countSelfAsAttacker || attacker != entity))
             attackerAction.accept(attacker);
         use();
     }

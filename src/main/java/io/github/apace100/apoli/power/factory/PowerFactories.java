@@ -919,6 +919,7 @@ public class PowerFactories {
                 .add("entity_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("attacker_action", ApoliDataTypes.ENTITY_ACTION, null)
                 .add("damage_condition", ApoliDataTypes.DAMAGE_CONDITION, null)
+                .add("count_self_as_attacker", SerializableDataTypes.BOOLEAN, false)
                 .add("cooldown", SerializableDataTypes.INT, 0)
                 .add("hud_render", ApoliDataTypes.HUD_RENDER, HudRender.DONT_RENDER),
             data ->
@@ -927,7 +928,8 @@ public class PowerFactories {
                     (HudRender)data.get("hud_render"),
                     (ActionFactory<Entity>.Instance)data.get("entity_action"),
                     (ActionFactory<Entity>.Instance)data.get("attacker_action"),
-                    (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition")))
+                    (ConditionFactory<Pair<DamageSource, Float>>.Instance)data.get("damage_condition"),
+                    data.getBoolean("count_self_as_attacker")))
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("action_on_item_use"),
             new SerializableData()
