@@ -44,6 +44,8 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.biome.Biome;
@@ -155,6 +157,27 @@ public class EntityConditions {
                     return false;
                 }
             }));
+        register(new ConditionFactory<>(Apoli.identifier("facing"), new SerializableData()
+            .add("direction", SerializableDataTypes.STRING)
+            .add("horizontal", SerializableDataTypes.BOOLEAN, false),
+            (data, entity) -> {
+                Direction dir;
+                if (data.getBoolean("horizontal"))
+                    dir = entity.getHorizontalFacing();
+                else {
+                    Vec3d v = entity.getRotationVector();
+                    dir = Direction.getFacing(v.x, v.y, v.z);
+                }
+                return dir == Direction.byName(data.getString("direction").toUpperCase());
+            }));
+        register(new ConditionFactory<>(Apoli.identifier("pitch"), new SerializableData()
+            .add("comparison", ApoliDataTypes.COMPARISON)
+            .add("compare_to", SerializableDataTypes.FLOAT),
+            (data, entity) -> ((Comparison) data.get("comparison")).compare(entity.getPitch(), data.getFloat("compare_to"))));
+        register(new ConditionFactory<>(Apoli.identifier("yaw"), new SerializableData()
+            .add("comparison", ApoliDataTypes.COMPARISON)
+            .add("compare_to", SerializableDataTypes.FLOAT),
+            (data, entity) -> ((Comparison) data.get("comparison")).compare(entity.getYaw(), data.getFloat("compare_to"))));
         register(new ConditionFactory<>(Apoli.identifier("food_level"), new SerializableData()
             .add("comparison", ApoliDataTypes.COMPARISON)
             .add("compare_to", SerializableDataTypes.INT),
