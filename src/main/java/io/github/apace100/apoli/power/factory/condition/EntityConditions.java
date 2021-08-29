@@ -25,6 +25,7 @@ import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.passive.TameableEntity;
+import net.minecraft.entity.player.PlayerAbilities;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.fluid.Fluid;
@@ -102,6 +103,8 @@ public class EntityConditions {
             .add("compare_to", SerializableDataTypes.INT), (data, entity) ->
             ((Comparison)data.get("comparison")).compare(entity.world.getTimeOfDay() % 24000L, data.getInt("compare_to"))));
         register(new ConditionFactory<>(Apoli.identifier("fall_flying"), new SerializableData(), (data, entity) -> entity.isFallFlying()));
+        register(new ConditionFactory<>(Apoli.identifier("creative_flying"), new SerializableData(),
+            (data, entity) -> entity instanceof PlayerEntity && ((PlayerEntity)entity).getAbilities().flying));
         register(new ConditionFactory<>(Apoli.identifier("exposed_to_sun"), new SerializableData(), (data, entity) -> {
             if (entity.world.isDay() && !((EntityAccessor) entity).callIsBeingRainedOn()) {
                 float f = entity.getBrightnessAtEyes();
