@@ -4,8 +4,22 @@ import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataTypes;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.enchantment.Enchantments;
+import net.minecraft.enchantment.UnbreakingEnchantment;
 import net.minecraft.item.ItemStack;
+import net.minecraft.loot.context.LootContext;
+import net.minecraft.loot.context.LootContextParameters;
+import net.minecraft.loot.context.LootContextTypes;
+import net.minecraft.loot.function.LootFunction;
+import net.minecraft.loot.function.LootFunctionManager;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Pair;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
+import net.minecraft.world.World;
 
 public class ItemActions {
 
@@ -13,19 +27,72 @@ public class ItemActions {
     public static void register() {
         register(new ActionFactory<>(Apoli.identifier("consume"), new SerializableData()
             .add("amount", SerializableDataTypes.INT, 1),
-            (data, stack) -> {
-                stack.decrement(data.getInt("amount"));
+            (data, worldAndStack) -> {
+                worldAndStack.getRight().decrement(data.getInt("amount"));
+            }));
+        register(new ActionFactory<>(Apoli.identifier("modify"), new SerializableData()
+            .add("modifier", SerializableDataTypes.IDENTIFIER),
+            (data, worldAndStack) -> {
+                if(!worldAndStack.getLeft().isClient) {
+                    MinecraftServer server = worldAndStack.getLeft().getServer();
+                    if(server != null) {
+                        Identifier id = data.getId("modifier");
+                        LootFunctionManager lootFunctionManager = server.getItemModifierManager();
+                        LootFunction lootFunction = lootFunctionManager.get(id);
+                        if (lootFunction == null) {
+                            Apoli.LOGGER.info("Unknown item modifier used in `modify` action: " + id);
+                            return;
+                        }
+                        ServerWorld serverWorld = server.getOverworld();
+                        LootContext.Builder builder = (new LootContext.Builder(serverWorld)).parameter(LootContextParameters.ORIGIN, new Vec3d(0, 0, 0));
+                        lootFunction.apply(worldAndStack.getRight(), builder.build(LootContextTypes.COMMAND));
+                    }
+                }
+            }));
+        register(new ActionFactory<>(Apoli.identifier("damage"), new SerializableData()
+            .add("amount", SerializableDataTypes.INT, 1)
+            .add("ignore_unbreaking", SerializableDataTypes.BOOLEAN, false),
+            (data, worldAndStack) -> {
+                if (worldAndStack.getRight().isDamageable()) {
+                    int amount = data.getInt("amount");
+                    int i;
+                    if (amount > 0 && !data.getBoolean("ignore_unbreaking")) {
+                        i = EnchantmentHelper.getLevel(Enchantments.UNBREAKING, worldAndStack.getRight());
+                        int j = 0;
+
+                        for(int k = 0; i > 0 && k < amount; ++k) {
+                            if (UnbreakingEnchantment.shouldPreventDamage(worldAndStack.getRight(), i, worldAndStack.getLeft().random)) {
+                                ++j;
+                            }
+                        }
+
+                        amount -= j;
+                        if (amount <= 0) {
+                            return;
+                        }
+                    }
+
+                    i = worldAndStack.getRight().getDamage() + amount;
+                    worldAndStack.getRight().setDamage(i);
+                    if(i >= worldAndStack.getRight().getMaxDamage()) {
+                        worldAndStack.getRight().decrement(1);
+                        worldAndStack.getRight().setDamage(0);
+                    }
+                }
             }));
 
         register(new ActionFactory<>(Apoli.identifier("log"), new SerializableData()
             .add("message", SerializableDataTypes.STRING)
             .add("show_variables", SerializableDataTypes.BOOLEAN, false)
-            .add("warning", SerializableDataTypes.BOOLEAN, false),
-            // no client_only/server_only options due to workings of getHolder
-            (data, stack) -> {
+            .add("warning", SerializableDataTypes.BOOLEAN, false)
+            .add("client_only", SerializableDataTypes.BOOLEAN, false)
+            .add("server_only", SerializableDataTypes.BOOLEAN, false),
+            (data, worldAndStack) -> {
+                if (worldAndStack.getLeft().isClient ? data.getBoolean("server_only") : data.getBoolean("client_only"))
+                    return; // if client and server-only, or server and client-only, abort
                 String message = data.getString("message");
                 if (data.getBoolean("show_variables"))
-                    message += stack;
+                    message += worldAndStack.getLeft() + " " + worldAndStack.getRight();
                 if (data.getBoolean("warning"))
                     Apoli.LOGGER.warn(message);
                 else
@@ -33,7 +100,7 @@ public class ItemActions {
             }));
     }
 
-    private static void register(ActionFactory<ItemStack> actionFactory) {
+    private static void register(ActionFactory<Pair<World, ItemStack>> actionFactory) {
         Registry.register(ApoliRegistries.ITEM_ACTION, actionFactory.getSerializerId(), actionFactory);
     }
 }

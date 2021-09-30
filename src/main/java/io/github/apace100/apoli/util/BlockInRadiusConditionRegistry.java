@@ -6,7 +6,7 @@ import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataType;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.block.pattern.CachedBlockPosition;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldView;
@@ -34,7 +34,7 @@ public class BlockInRadiusConditionRegistry {
         return worldView instanceof World && testCondition(data, cbp.getBlockPos(), (World)worldView);
     }
 
-    public static boolean testCondition(SerializableData.Instance data, LivingEntity entity){
+    public static boolean testCondition(SerializableData.Instance data, Entity entity){
         return testCondition(data, entity.getBlockPos(), entity.world);
     }
 

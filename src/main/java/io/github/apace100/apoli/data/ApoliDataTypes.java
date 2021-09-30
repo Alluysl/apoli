@@ -1,10 +1,8 @@
 package io.github.apace100.apoli.data;
 
-import io.github.apace100.apoli.Apoli;
 import io.github.apace100.apoli.power.Active;
 import io.github.apace100.apoli.power.PowerType;
 import io.github.apace100.apoli.power.PowerTypeReference;
-import io.github.apace100.apoli.power.PowerTypes;
 import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.power.factory.action.ActionType;
 import io.github.apace100.apoli.power.factory.action.ActionTypes;
@@ -21,21 +19,22 @@ import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataType;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.block.pattern.CachedBlockPosition;
+import net.minecraft.client.render.CameraSubmersionType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.InvalidIdentifierException;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import org.apache.commons.lang3.tuple.Triple;
@@ -48,11 +47,17 @@ public class ApoliDataTypes {
         PowerTypeReference.class, SerializableDataTypes.IDENTIFIER,
         PowerType::getIdentifier, PowerTypeReference::new);
 
-    public static final SerializableDataType<ConditionFactory<LivingEntity>.Instance> ENTITY_CONDITION =
+    public static final SerializableDataType<ConditionFactory<Entity>.Instance> ENTITY_CONDITION =
         condition(ClassUtil.castClass(ConditionFactory.Instance.class), ConditionTypes.ENTITY);
 
-    public static final SerializableDataType<List<ConditionFactory<LivingEntity>.Instance>> ENTITY_CONDITIONS =
+    public static final SerializableDataType<List<ConditionFactory<Entity>.Instance>> ENTITY_CONDITIONS =
         SerializableDataType.list(ENTITY_CONDITION);
+
+    public static final SerializableDataType<ConditionFactory<Pair<Entity, Entity>>.Instance> BIENTITY_CONDITION =
+        condition(ClassUtil.castClass(ConditionFactory.Instance.class), ConditionTypes.BIENTITY);
+
+    public static final SerializableDataType<List<ConditionFactory<Pair<Entity, Entity>>.Instance>> BIENTITY_CONDITIONS =
+        SerializableDataType.list(BIENTITY_CONDITION);
 
     public static final SerializableDataType<ConditionFactory<ItemStack>.Instance> ITEM_CONDITION =
         condition(ClassUtil.castClass(ConditionFactory.Instance.class), ConditionTypes.ITEM);
@@ -90,16 +95,22 @@ public class ApoliDataTypes {
     public static final SerializableDataType<List<ActionFactory<Entity>.Instance>> ENTITY_ACTIONS =
         SerializableDataType.list(ENTITY_ACTION);
 
+    public static final SerializableDataType<ActionFactory<Pair<Entity, Entity>>.Instance> BIENTITY_ACTION =
+        action(ClassUtil.castClass(ActionFactory.Instance.class), ActionTypes.BIENTITY);
+
+    public static final SerializableDataType<List<ActionFactory<Pair<Entity, Entity>>.Instance>> BIENTITY_ACTIONS =
+        SerializableDataType.list(BIENTITY_ACTION);
+
     public static final SerializableDataType<ActionFactory<Triple<World, BlockPos, Direction>>.Instance> BLOCK_ACTION =
         action(ClassUtil.castClass(ActionFactory.Instance.class), ActionTypes.BLOCK);
 
     public static final SerializableDataType<List<ActionFactory<Triple<World, BlockPos, Direction>>.Instance>> BLOCK_ACTIONS =
         SerializableDataType.list(BLOCK_ACTION);
 
-    public static final SerializableDataType<ActionFactory<ItemStack>.Instance> ITEM_ACTION =
+    public static final SerializableDataType<ActionFactory<Pair<World, ItemStack>>.Instance> ITEM_ACTION =
         action(ClassUtil.castClass(ActionFactory.Instance.class), ActionTypes.ITEM);
 
-    public static final SerializableDataType<List<ActionFactory<ItemStack>.Instance>> ITEM_ACTIONS =
+    public static final SerializableDataType<List<ActionFactory<Pair<World, ItemStack>>.Instance>> ITEM_ACTIONS =
         SerializableDataType.list(ITEM_ACTION);
 
     public static final SerializableDataType<Space> SPACE = SerializableDataType.enumValue(Space.class);
@@ -186,23 +197,30 @@ public class ApoliDataTypes {
             .add("should_render", SerializableDataTypes.BOOLEAN, true)
             .add("bar_index", SerializableDataTypes.INT, 0)
             .add("sprite_location", SerializableDataTypes.IDENTIFIER, new Identifier("origins", "textures/gui/resource_bar.png"))
-            .add("condition", ENTITY_CONDITION, null),
+            .add("condition", ENTITY_CONDITION, null)
+            .add("inverted", SerializableDataTypes.BOOLEAN, false),
         (dataInst) -> new HudRender(
             dataInst.getBoolean("should_render"),
             dataInst.getInt("bar_index"),
             dataInst.getId("sprite_location"),
-            (ConditionFactory<LivingEntity>.Instance)dataInst.get("condition")),
+            (ConditionFactory<LivingEntity>.Instance)dataInst.get("condition"),
+            dataInst.getBoolean("inverted")),
         (data, inst) -> {
             SerializableData.Instance dataInst = data.new Instance();
             dataInst.set("should_render", inst.shouldRender());
             dataInst.set("bar_index", inst.getBarIndex());
             dataInst.set("sprite_location", inst.getSpriteLocation());
             dataInst.set("condition", inst.getCondition());
+            dataInst.set("inverted", inst.isInverted());
             return dataInst;
         });
 
     public static final SerializableDataType<Comparison> COMPARISON = SerializableDataType.enumValue(Comparison.class,
         SerializationHelper.buildEnumMap(Comparison.class, Comparison::getComparisonString));
+
+    public static final SerializableDataType<Fluid> FLUID = SerializableDataType.registry(Fluid.class, Registry.FLUID);
+
+    public static final SerializableDataType<CameraSubmersionType> CAMERA_SUBMERSION_TYPE = SerializableDataType.enumValue(CameraSubmersionType.class);
 
     public static <T> SerializableDataType<ConditionFactory<T>.Instance> condition(Class<ConditionFactory<T>.Instance> dataClass, ConditionType<T> conditionType) {
         return new SerializableDataType<>(dataClass, conditionType::write, conditionType::read, conditionType::read);

@@ -6,7 +6,7 @@ import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.block.pattern.CachedBlockPosition;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -88,7 +88,7 @@ public class DistanceFromCoordinatesConditionRegistry {
     public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block){
         return testCondition(data, block, null);
     }
-    public static boolean testCondition(SerializableData.Instance data, LivingEntity entity){
+    public static boolean testCondition(SerializableData.Instance data, Entity entity){
         return testCondition(data, null, entity);
     }
 
@@ -100,7 +100,7 @@ public class DistanceFromCoordinatesConditionRegistry {
      * @param entity the entity to check the condition for
      * @return the result of the distance comparison
      * */
-    public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block, LivingEntity entity){
+    public static boolean testCondition(SerializableData.Instance data, CachedBlockPosition block, Entity entity){
         boolean scaleReferenceToDimension = data.getBoolean("scale_reference_to_dimension"),
             setResultOnWrongDimension = data.isPresent("result_on_wrong_dimension"),
             resultOnWrongDimension = setResultOnWrongDimension && data.getBoolean("result_on_wrong_dimension");

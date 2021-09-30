@@ -2,7 +2,6 @@ package io.github.apace100.apoli.power;
 
 import io.github.apace100.apoli.util.HudRender;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
 
 public class HudRenderedVariableIntPower extends VariableIntPower implements HudRendered {
 

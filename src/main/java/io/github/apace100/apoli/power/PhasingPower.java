@@ -12,13 +12,13 @@ public class PhasingPower extends Power {
     private final Predicate<CachedBlockPosition> blocks;
     private final boolean isBlacklist;
 
-    private final Predicate<LivingEntity> phaseDownCondition;
+    private final Predicate<Entity> phaseDownCondition;
 
     private final RenderType renderType;
     private final float viewDistance;
 
     public PhasingPower(PowerType<?> type, LivingEntity entity, Predicate<CachedBlockPosition> blocks, boolean isBlacklist,
-                        RenderType renderType, float viewDistance, Predicate<LivingEntity> phaseDownCondition) {
+                        RenderType renderType, float viewDistance, Predicate<Entity> phaseDownCondition) {
         super(type, entity);
         this.blocks = blocks;
         this.isBlacklist = isBlacklist;
@@ -32,7 +32,7 @@ public class PhasingPower extends Power {
     }
 
     public boolean shouldPhaseDown(Entity entity) {
-        return phaseDownCondition == null ? entity.isSneaking() : entity instanceof LivingEntity && phaseDownCondition.test((LivingEntity)entity);
+        return phaseDownCondition == null ? entity.isSneaking() : phaseDownCondition.test(entity);
     }
 
     public RenderType getRenderType() {

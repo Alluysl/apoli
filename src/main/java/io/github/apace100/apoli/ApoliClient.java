@@ -8,7 +8,13 @@ import io.github.apace100.apoli.power.Power;
 import io.github.apace100.apoli.power.factory.condition.*;
 import io.github.apace100.apoli.screen.GameHudRender;
 import io.github.apace100.apoli.screen.PowerHudRenderer;
+import io.github.apace100.apoli.util.ApoliConfigClient;
+import io.github.apace100.apoli.util.ApoliConfigServer;
 import io.netty.buffer.Unpooled;
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
+import me.shedaniel.autoconfig.serializer.Toml4jConfigSerializer;
+import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Jankson;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -24,6 +30,8 @@ import java.util.List;
 
 @Environment(EnvType.CLIENT)
 public class ApoliClient implements ClientModInitializer {
+
+	public static boolean shouldReloadWorldRenderer = false;
 
 	private static HashMap<String, KeyBinding> idToKeyBindingMap = new HashMap<>();
 	private static HashMap<String, Boolean> lastKeyBindingStates = new HashMap<>();
@@ -67,6 +75,9 @@ public class ApoliClient implements ClientModInitializer {
 		});
 
 		GameHudRender.HUD_RENDERS.add(new PowerHudRenderer());
+
+		AutoConfig.register(ApoliConfigClient.class, JanksonConfigSerializer::new);
+		Apoli.config = AutoConfig.getConfigHolder(ApoliConfigClient.class).getConfig();
 	}
 
 	@Environment(EnvType.CLIENT)

@@ -5,15 +5,20 @@ import io.github.apace100.apoli.data.ApoliDataTypes;
 import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.apoli.util.Comparison;
+import io.github.apace100.apoli.util.StackPowerUtil;
 import io.github.apace100.calio.data.SerializableData;
 import io.github.apace100.calio.data.SerializableDataTypes;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ToolItem;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
 import net.minecraft.recipe.Ingredient;
 import net.minecraft.util.Rarity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
 import java.util.List;
@@ -101,6 +106,45 @@ public class ItemConditions {
             }));
         register(new ConditionFactory<>(Apoli.identifier("meat"), new SerializableData(),
             (data, stack) -> stack.isFood() && stack.getItem().getFoodComponent().isMeat()));
+        register(new ConditionFactory<>(Apoli.identifier("nbt"), new SerializableData()
+            .add("nbt", SerializableDataTypes.NBT), (data, stack) -> NbtHelper.matches((NbtCompound)data.get("nbt"), stack.getNbt(), true)));
+        register(new ConditionFactory<>(Apoli.identifier("fireproof"), new SerializableData(),
+            (data, stack) -> stack.getItem().isFireproof()));
+        register(new ConditionFactory<>(Apoli.identifier("enchantable"), new SerializableData(),
+            (data, stack) -> !stack.isEnchantable()));
+        register(new ConditionFactory<>(Apoli.identifier("power_count"), new SerializableData()
+            .add("slot", SerializableDataTypes.EQUIPMENT_SLOT, null)
+            .add("compare_to", SerializableDataTypes.INT)
+            .add("comparison", ApoliDataTypes.COMPARISON),
+            (data, stack) -> {
+                int totalCount = 0;
+                if(data.isPresent("slot")) {
+                    totalCount = StackPowerUtil.getPowers(stack, (EquipmentSlot)data.get("slot")).size();
+                } else {
+                    for (EquipmentSlot slot :
+                        EquipmentSlot.values()) {
+                        totalCount += StackPowerUtil.getPowers(stack, slot).size();
+                    }
+                }
+                return ((Comparison)data.get("comparison")).compare(totalCount, data.getInt("compare_to"));
+            }));
+        register(new ConditionFactory<>(Apoli.identifier("has_power"), new SerializableData()
+            .add("slot", SerializableDataTypes.EQUIPMENT_SLOT, null)
+            .add("power", SerializableDataTypes.IDENTIFIER),
+            (data, stack) -> {
+                Identifier power = data.getId("power");
+                if(data.isPresent("slot")) {
+                    return StackPowerUtil.getPowers(stack, (EquipmentSlot)data.get("slot")).stream().anyMatch(p -> p.powerId.equals(power));
+                } else {
+                    for (EquipmentSlot slot :
+                        EquipmentSlot.values()) {
+                        if(StackPowerUtil.getPowers(stack, slot).stream().anyMatch(p -> p.powerId.equals(power))) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }));
     }
 
     private static void register(ConditionFactory<ItemStack> conditionFactory) {

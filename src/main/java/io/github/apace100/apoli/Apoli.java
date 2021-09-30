@@ -12,13 +12,13 @@ import io.github.apace100.apoli.component.PowerHolderComponentImpl;
 import io.github.apace100.apoli.networking.ModPacketsC2S;
 import io.github.apace100.apoli.power.PowerTypes;
 import io.github.apace100.apoli.power.factory.PowerFactories;
+import io.github.apace100.apoli.power.factory.action.BiEntityActions;
 import io.github.apace100.apoli.power.factory.action.BlockActions;
 import io.github.apace100.apoli.power.factory.action.EntityActions;
 import io.github.apace100.apoli.power.factory.action.ItemActions;
 import io.github.apace100.apoli.power.factory.condition.*;
-import io.github.apace100.apoli.util.NamespaceAlias;
-import io.github.apace100.apoli.util.PowerRestrictedCraftingRecipe;
-import io.github.apace100.apoli.util.Scheduler;
+import io.github.apace100.apoli.util.*;
+import io.github.apace100.calio.mixin.CriteriaRegistryInvoker;
 import io.github.ladysnake.pal.AbilitySource;
 import io.github.ladysnake.pal.Pal;
 import net.fabricmc.api.ModInitializer;
@@ -35,6 +35,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Apoli implements ModInitializer, EntityComponentInitializer {
+
+	public static ApoliConfig config;
 
 	public static final Scheduler SCHEDULER = new Scheduler();
 
@@ -72,12 +74,16 @@ public class Apoli implements ModInitializer, EntityComponentInitializer {
 		});
 
 		Registry.register(Registry.RECIPE_SERIALIZER, Apoli.identifier("power_restricted"), PowerRestrictedCraftingRecipe.SERIALIZER);
+		Registry.register(Registry.RECIPE_SERIALIZER, Apoli.identifier("modified"), ModifiedCraftingRecipe.SERIALIZER);
+
+		Registry.register(Registry.LOOT_FUNCTION_TYPE, Apoli.identifier("add_power"), AddPowerLootFunction.TYPE);
 
 		ArgumentTypes.register(MODID + ":power", PowerTypeArgumentType.class, new ConstantArgumentSerializer<>(PowerTypeArgumentType::power));
 		ArgumentTypes.register(MODID + ":power_operation", PowerOperation.class, new ConstantArgumentSerializer<>(PowerOperation::operation));
 
 		PowerFactories.register();
 		EntityConditions.register();
+		BiEntityConditions.register();
 		ItemConditions.register();
 		BlockConditions.register();
 		DamageConditions.register();
@@ -86,7 +92,10 @@ public class Apoli implements ModInitializer, EntityComponentInitializer {
 		EntityActions.register();
 		ItemActions.register();
 		BlockActions.register();
+		BiEntityActions.register();
 		ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new PowerTypes());
+
+		CriteriaRegistryInvoker.callRegister(GainedPowerCriterion.INSTANCE);
 
 		LOGGER.info("Apoli " + VERSION + " has initialized. Ready to power up your game!");
 	}
