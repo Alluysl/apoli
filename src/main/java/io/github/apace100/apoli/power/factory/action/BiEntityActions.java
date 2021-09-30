@@ -99,6 +99,23 @@ public class BiEntityActions {
                 method.accept(vec.getX(), vec.getY(), vec.getZ());
                 moving.velocityModified = true;
             }));
+        register(new ActionFactory<>(Apoli.identifier("log"), new SerializableData()
+            .add("message", SerializableDataTypes.STRING)
+            .add("show_variables", SerializableDataTypes.BOOLEAN, false)
+            .add("warning", SerializableDataTypes.BOOLEAN, false)
+            .add("client_only", SerializableDataTypes.BOOLEAN, false)
+            .add("server_only", SerializableDataTypes.BOOLEAN, false),
+            (data, entities) -> {
+                if (entities.getLeft().world.isClient ? data.getBoolean("server_only") : data.getBoolean("client_only"))
+                    return; // if client and server-only, or server and client-only, abort
+                String message = data.getString("message");
+                if (data.getBoolean("show_variables"))
+                    message += entities.getLeft() + " " + entities.getRight();
+                if (data.getBoolean("warning"))
+                    Apoli.LOGGER.warn(message);
+                else
+                    Apoli.LOGGER.info(message);
+            }));
     }
 
     private static void register(ActionFactory<Pair<Entity, Entity>> actionFactory) {

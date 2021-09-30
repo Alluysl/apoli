@@ -7,6 +7,7 @@ import io.github.apace100.apoli.component.PowerHolderComponent;
 import io.github.apace100.apoli.data.ApoliDataTypes;
 import io.github.apace100.apoli.mixin.EntityAccessor;
 import io.github.apace100.apoli.power.*;
+import io.github.apace100.apoli.power.factory.action.ActionFactory;
 import io.github.apace100.apoli.registry.ApoliRegistries;
 import io.github.apace100.apoli.util.Comparison;
 import io.github.apace100.apoli.util.Shape;
@@ -69,6 +70,13 @@ public class BiEntityConditions {
             (data, pair) -> ((List<ConditionFactory<Pair<Entity, Entity>>.Instance>)data.get("conditions")).stream().anyMatch(
                 condition -> condition.test(pair)
             )));
+        register(new ConditionFactory<>(Apoli.identifier("after"), new SerializableData()
+            .add("action", ApoliDataTypes.ENTITY_ACTION)
+            .add("condition", ApoliDataTypes.ENTITY_CONDITION),
+            (data, entities) -> {
+                ((ActionFactory<Pair<Entity, Entity>>.Instance)data.get("action")).accept(entities);
+                return ((ConditionFactory<Pair<Entity, Entity>>.Instance)data.get("condition")).test(entities);
+            }));
         register(new ConditionFactory<>(Apoli.identifier("invert"), new SerializableData()
             .add("condition", ApoliDataTypes.BIENTITY_CONDITION),
             (data, pair) -> {
