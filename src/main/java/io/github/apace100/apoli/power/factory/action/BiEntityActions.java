@@ -14,7 +14,6 @@ import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Pair;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3f;
 import net.minecraft.util.registry.Registry;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -82,16 +81,23 @@ public class BiEntityActions {
             .add("x", SerializableDataTypes.FLOAT, 0F)
             .add("y", SerializableDataTypes.FLOAT, 0F)
             .add("z", SerializableDataTypes.FLOAT, 0F)
-            .add("set", SerializableDataTypes.BOOLEAN, false),
+            .add("set", SerializableDataTypes.BOOLEAN, false)
+            .add("actor", SerializableDataTypes.BOOLEAN, false) // whether to move the actor instead of the target
+            .add("client_only", SerializableDataTypes.BOOLEAN, false) // preferred true but false by default for backward compatibility
+            .add("server_only", SerializableDataTypes.BOOLEAN, false), // preferred false though we might as well allow it to be specified
             (data, entities) -> {
+                Entity actor = entities.getLeft(), target = entities.getRight(), moving = data.getBoolean("actor") ? actor : target;
+                if (moving instanceof PlayerEntity
+                    && (moving.world.isClient ?
+                    data.getBoolean("server_only") : data.getBoolean("client_only")))
+                    return;
                 Vec3f vec = new Vec3f(data.getFloat("x"), data.getFloat("y"), data.getFloat("z"));
-                Vec3d delta = entities.getRight().getPos().subtract(entities.getLeft().getPos()).normalize();
-                TriConsumer<Float, Float, Float> method = entities.getRight()::addVelocity;
-                if(data.getBoolean("set")) {
-                    method = entities.getRight()::setVelocity;
-                }
-                Space.rotateVectorToBase(delta, vec);
+                TriConsumer<Float, Float, Float> method = moving::addVelocity;
+                if(data.getBoolean("set"))
+                    method = moving::setVelocity;
+                Space.transformVectorToBase(target.getPos().subtract(actor.getPos()), vec, actor.getYaw(), true);
                 method.accept(vec.getX(), vec.getY(), vec.getZ());
+                moving.velocityModified = true;
             }));
     }
 

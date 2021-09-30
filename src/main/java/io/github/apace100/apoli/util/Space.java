@@ -68,7 +68,7 @@ public enum Space {
      * @param baseYaw the yaw of the base (used in case the forward vector lacks information to infer the base)
      * @param normalizeBase whether to normalize the base, if so all three vectors of the base will be normalized, otherwise they'll all have the length of the input forward vector
      * */
-    private static void transformVectorToBase(Vec3d baseForwardVector, Vec3f vector, float baseYaw, boolean normalizeBase) {
+    public static void transformVectorToBase(Vec3d baseForwardVector, Vec3f vector, float baseYaw, boolean normalizeBase) {
 
         double baseScaleD = baseForwardVector.length();
         if (baseScaleD <= 0.007D){ // tweak value if too high, may be a bit too aggressive
