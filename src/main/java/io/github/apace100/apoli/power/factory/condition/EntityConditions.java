@@ -77,7 +77,7 @@ public class EntityConditions {
             .add("action", ApoliDataTypes.ENTITY_ACTION)
             .add("condition", ApoliDataTypes.ENTITY_CONDITION),
             (data, entity) -> {
-                ((ActionFactory< Entity >.Instance)data.get("action")).accept(entity);
+                ((ActionFactory<Entity>.Instance)data.get("action")).accept(entity);
                 return ((ConditionFactory<Entity>.Instance)data.get("condition")).test(entity);
             }));
         register(new ConditionFactory<>(Apoli.identifier("block_collision"), new SerializableData()
