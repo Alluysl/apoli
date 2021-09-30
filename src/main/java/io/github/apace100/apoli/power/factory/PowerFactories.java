@@ -38,6 +38,8 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.tag.Tag;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -48,12 +50,11 @@ import net.minecraft.world.event.GameEvent;
 import net.minecraft.world.gen.feature.StructureFeature;
 import org.apache.commons.lang3.tuple.Triple;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class PowerFactories {
 
@@ -999,22 +1000,131 @@ public class PowerFactories {
             .allowCondition());
         register(new PowerFactory<>(Apoli.identifier("action_on_entity_use"),
             new SerializableData()
-                .add("bientity_action", ApoliDataTypes.BIENTITY_ACTION)
-                .add("target_condition", ApoliDataTypes.ENTITY_CONDITION, null)
-                .add("bientity_condition", ApoliDataTypes.BIENTITY_CONDITION, null),
+                .add("bientity_action", ApoliDataTypes.BIENTITY_ACTION, null)
+                .add("bientity_condition", ApoliDataTypes.BIENTITY_CONDITION, null)
+                .add("item_condition", ApoliDataTypes.ITEM_CONDITION, null)
+                .add("hands", SerializableDataTypes.HAND_SET, EnumSet.allOf(Hand.class))
+                .add("result_stack", SerializableDataTypes.ITEM_STACK, null)
+                .add("held_item_action", ApoliDataTypes.ITEM_ACTION, null)
+                .add("result_item_action", ApoliDataTypes.ITEM_ACTION, null)
+                .add("action_result", SerializableDataTypes.ACTION_RESULT, ActionResult.SUCCESS),
             data ->
                 (type, player) -> {
                     return new ActionOnEntityUsePower(type, player,
-                        (ActionFactory<Pair<Entity, Entity>>.Instance)data.get("bientity_action"),
-                        (ConditionFactory<Entity>.Instance)data.get("target_condition"),
+                        (EnumSet<Hand>)data.get("hands"),
+                        (ActionResult)data.get("action_result"),
+                        (Predicate<ItemStack>)data.get("item_condition"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("held_item_action"),
+                        (ItemStack)data.get("result_stack"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("result_item_action"),
+                        (Consumer<Pair<Entity, Entity>>) data.get("bientity_action"),
+                        (ConditionFactory<Pair<Entity, Entity>>.Instance)data.get("bientity_condition"));
+                })
+            .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("action_on_being_used"),
+            new SerializableData()
+                .add("bientity_action", ApoliDataTypes.BIENTITY_ACTION, null)
+                .add("bientity_condition", ApoliDataTypes.BIENTITY_CONDITION, null)
+                .add("item_condition", ApoliDataTypes.ITEM_CONDITION, null)
+                .add("hands", SerializableDataTypes.HAND_SET, EnumSet.allOf(Hand.class))
+                .add("result_stack", SerializableDataTypes.ITEM_STACK, null)
+                .add("held_item_action", ApoliDataTypes.ITEM_ACTION, null)
+                .add("result_item_action", ApoliDataTypes.ITEM_ACTION, null)
+                .add("action_result", SerializableDataTypes.ACTION_RESULT, ActionResult.SUCCESS),
+            data ->
+                (type, player) -> {
+                    return new ActionOnBeingUsedPower(type, player,
+                        (EnumSet<Hand>)data.get("hands"),
+                        (ActionResult)data.get("action_result"),
+                        (Predicate<ItemStack>)data.get("item_condition"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("held_item_action"),
+                        (ItemStack)data.get("result_stack"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("result_item_action"),
+                        (Consumer<Pair<Entity, Entity>>) data.get("bientity_action"),
+                        (ConditionFactory<Pair<Entity, Entity>>.Instance)data.get("bientity_condition"));
+                })
+            .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("prevent_entity_use"),
+            new SerializableData()
+                .add("bientity_action", ApoliDataTypes.BIENTITY_ACTION, null)
+                .add("bientity_condition", ApoliDataTypes.BIENTITY_CONDITION, null)
+                .add("item_condition", ApoliDataTypes.ITEM_CONDITION, null)
+                .add("hands", SerializableDataTypes.HAND_SET, EnumSet.allOf(Hand.class))
+                .add("result_stack", SerializableDataTypes.ITEM_STACK, null)
+                .add("held_item_action", ApoliDataTypes.ITEM_ACTION, null)
+                .add("result_item_action", ApoliDataTypes.ITEM_ACTION, null),
+            data ->
+                (type, player) -> {
+                    return new PreventEntityUsePower(type, player,
+                        (EnumSet<Hand>)data.get("hands"),
+                        ActionResult.CONSUME,
+                        (Predicate<ItemStack>)data.get("item_condition"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("held_item_action"),
+                        (ItemStack)data.get("result_stack"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("result_item_action"),
+                        (Consumer<Pair<Entity, Entity>>) data.get("bientity_action"),
+                        (ConditionFactory<Pair<Entity, Entity>>.Instance)data.get("bientity_condition"));
+                })
+            .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("prevent_being_used"),
+            new SerializableData()
+                .add("bientity_action", ApoliDataTypes.BIENTITY_ACTION, null)
+                .add("bientity_condition", ApoliDataTypes.BIENTITY_CONDITION, null)
+                .add("item_condition", ApoliDataTypes.ITEM_CONDITION, null)
+                .add("hands", SerializableDataTypes.HAND_SET, EnumSet.allOf(Hand.class))
+                .add("result_stack", SerializableDataTypes.ITEM_STACK, null)
+                .add("held_item_action", ApoliDataTypes.ITEM_ACTION, null)
+                .add("result_item_action", ApoliDataTypes.ITEM_ACTION, null),
+            data ->
+                (type, player) -> {
+                    return new PreventBeingUsedPower(type, player,
+                        (EnumSet<Hand>)data.get("hands"),
+                        ActionResult.CONSUME,
+                        (Predicate<ItemStack>)data.get("item_condition"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("held_item_action"),
+                        (ItemStack)data.get("result_stack"),
+                        (Consumer<Pair<World, ItemStack>>)data.get("result_item_action"),
+                        (Consumer<Pair<Entity, Entity>>) data.get("bientity_action"),
                         (ConditionFactory<Pair<Entity, Entity>>.Instance)data.get("bientity_condition"));
                 })
             .allowCondition());
         UseEntityCallback.EVENT.register(((playerEntity, world, hand, entity, entityHitResult) -> {
-            List<ActionOnEntityUsePower> powers = PowerHolderComponent.getPowers(playerEntity, ActionOnEntityUsePower.class).stream().filter(p -> p.shouldExecute(entity)).toList();
-            if(powers.size() > 0) {
-                powers.get(0).executeAction(entity);
-                return ActionResult.SUCCESS;
+            if(playerEntity.isSpectator()) {
+                return ActionResult.PASS;
+            }
+            ItemStack stack = playerEntity.getStackInHand(hand);
+            for(PreventEntityUsePower peup : PowerHolderComponent.getPowers(playerEntity, PreventEntityUsePower.class)) {
+                if(peup.doesApply(entity, hand, stack)) {
+                    return peup.executeAction(entity, hand);
+                }
+            }
+            for(PreventBeingUsedPower pbup : PowerHolderComponent.getPowers(entity, PreventBeingUsedPower.class)) {
+                if(pbup.doesApply(playerEntity, hand, stack)) {
+                    return pbup.executeAction(playerEntity, hand);
+                }
+            }
+            ActionResult result = ActionResult.PASS;
+            List<ActionOnEntityUsePower> powers = PowerHolderComponent.getPowers(playerEntity, ActionOnEntityUsePower.class).stream().filter(p -> p.shouldExecute(entity, hand, stack)).toList();
+            for (ActionOnEntityUsePower aoip : powers) {
+                ActionResult ar = aoip.executeAction(entity, hand);
+                if(ar.isAccepted() && !result.isAccepted()) {
+                    result = ar;
+                } else if(ar.shouldSwingHand() && !result.shouldSwingHand()) {
+                    result = ar;
+                }
+            }
+            List<ActionOnBeingUsedPower> otherPowers = PowerHolderComponent.getPowers(entity, ActionOnBeingUsedPower.class).stream()
+                .filter(p -> p.shouldExecute(playerEntity, hand, stack)).collect(Collectors.toList());
+            for(ActionOnBeingUsedPower awip : otherPowers) {
+                ActionResult ar = awip.executeAction(playerEntity, hand);
+                if(ar.isAccepted() && !result.isAccepted()) {
+                    result = ar;
+                } else if(ar.shouldSwingHand() && !result.shouldSwingHand()) {
+                    result = ar;
+                }
+            }
+            if(powers.size() > 0 || otherPowers.size() > 0) {
+                return result;
             }
             return ActionResult.PASS;
         }));
@@ -1101,7 +1211,7 @@ public class PowerFactories {
             new SerializableData()
                 .add("block_condition", ApoliDataTypes.BLOCK_CONDITION, null)
                 .add("fluid_condition", ApoliDataTypes.FLUID_CONDITION, null)
-                .add("fluid", ApoliDataTypes.FLUID),
+                .add("fluid", SerializableDataTypes.FLUID),
             data ->
                 (type, player) -> new ModifyFluidRenderPower(type, player,
                     (ConditionFactory<CachedBlockPosition>.Instance)data.get("block_condition"),
@@ -1109,8 +1219,8 @@ public class PowerFactories {
                     ((Fluid)data.get("fluid")).getDefaultState())));
         register(new PowerFactory<>(Apoli.identifier("modify_camera_submersion"),
             new SerializableData()
-                .add("from", ApoliDataTypes.CAMERA_SUBMERSION_TYPE, null)
-                .add("to", ApoliDataTypes.CAMERA_SUBMERSION_TYPE),
+                .add("from", SerializableDataTypes.CAMERA_SUBMERSION_TYPE, null)
+                .add("to", SerializableDataTypes.CAMERA_SUBMERSION_TYPE),
             data ->
                 (type, player) -> new ModifyCameraSubmersionTypePower(type, player,
                     data.isPresent("from") ? Optional.of((CameraSubmersionType)data.get("from")) : Optional.empty(),
@@ -1133,6 +1243,29 @@ public class PowerFactories {
                     (ActionFactory<Pair<World, ItemStack>>.Instance)data.get("on_item_action"),
                     (ActionFactory<Pair<World, ItemStack>>.Instance)data.get("result_item_action"),
                     (ActionFactory<Entity>.Instance)data.get("entity_action")))
+            .allowCondition());
+        register(new PowerFactory<>(Apoli.identifier("overlay"),
+            new SerializableData()
+                .add("texture", SerializableDataTypes.IDENTIFIER)
+                .add("strength", SerializableDataTypes.FLOAT, 1.0F)
+                .add("red", SerializableDataTypes.FLOAT, 1.0F)
+                .add("green", SerializableDataTypes.FLOAT, 1.0F)
+                .add("blue", SerializableDataTypes.FLOAT, 1.0F)
+                .add("draw_mode", SerializableDataType.enumValue(OverlayPower.DrawMode.class))
+                .add("draw_phase", SerializableDataType.enumValue(OverlayPower.DrawPhase.class))
+                .add("hide_with_hud", SerializableDataTypes.BOOLEAN, true)
+                .add("visible_in_third_person", SerializableDataTypes.BOOLEAN, false),
+            data ->
+                (type, player) -> new OverlayPower(type, player,
+                    data.getId("texture"),
+                    data.getFloat("strength"),
+                    data.getFloat("red"),
+                    data.getFloat("green"),
+                    data.getFloat("blue"),
+                    (OverlayPower.DrawMode) data.get("draw_mode"),
+                    (OverlayPower.DrawPhase) data.get("draw_phase"),
+                    data.getBoolean("hide_with_hud"),
+                    data.getBoolean("visible_in_third_person")))
             .allowCondition());
     }
 
